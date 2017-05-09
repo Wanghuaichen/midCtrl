@@ -1,16 +1,12 @@
 package comm
 
-import (
-	"log"
-	"net"
-)
+//type DevConn *net.Conn
 
-type DevConn *net.Conn
+//var devConnTable map[DevType](map[DevId]DevConn)
+//var serviceAddr string
+//var serviceConn net.Conn
 
-var devConnTable map[DevType](map[DevId]DevConn)
-var serviceAddr string
-var serviceConn net.Conn
-
+/*
 func InitComm() error {
 	//建立服务器连接
 	serviceConn, err := net.Dial("tcp", serviceAddr)
@@ -33,3 +29,4 @@ func InitComm() error {
 		go devices.HandleDeviceConn(&conn)
 	}
 }
+*/
