@@ -1,37 +1,24 @@
 package devices
 
-import "comm"
-import "utilies"
+import (
+	"encoding/json"
+	"net"
+)
 
-type DevType string
-type DevId string
-
-type DeviceInfo struct {
-    id DevId
-    type DevType
-    mac string
+// DianBiaoHanldeMsg 电表的消息处理
+func DianBiaoHanldeMsg(msg string) {
+	json.Unmarshal(msg, data)
+	switch data["action"] {
+	case "每日电量":
+	case "总电量":
+	}
 }
 
-func getDeviceInfo(mac string) (DeviceInfo,error){
+func get每日电量() {
 
 }
 
-func getDeviceMac() (macAddr string,err error){
-
-}
-
-
-func HandleDeviceConn(conn DevConn){
-    defer conn.Close()
-    macAddr,err:=getDeviceMac()
-    if err !=nil {
-        log.Printf("获取连接设备Mac地址失败:%s\n",err.Error())
-    }
-    devInfo, err := getDeviceInfo(macAddr)
-
-    if err !=nil {
-        log.Printf("获取连接设备信息失败:%s\n",err.Error())
-    }
-
-
+func devSend(conn net.Conn, data []byte)
+{
+    conn.Write(data)
 }
