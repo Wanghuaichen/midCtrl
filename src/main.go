@@ -3,6 +3,7 @@ package main
 import (
 	"config"
 	"devices"
+	"fmt"
 	"log"
 	"os"
 	"serv"
@@ -26,6 +27,7 @@ func InitLoger() error {
 
 }
 
+// Init 初始化程序
 func Init() {
 	config.InitConfig()
 	InitLoger()
@@ -34,7 +36,9 @@ func Init() {
 }
 func transServMsg() {
 	for {
-		devices.SendData(serv.GetData())
+		data := serv.GetData()
+		fmt.Printf("转发到设备侧的数据：%v %s \n", data, string(data))
+		devices.SendData(data)
 	}
 }
 func main() {
@@ -44,6 +48,8 @@ func main() {
 
 	//转发设备侧处理后的消息到主服务器
 	for {
-		serv.SendData(devices.GetData())
+		data := devices.GetData()
+		fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
+		serv.SendData(data)
 	}
 }

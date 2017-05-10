@@ -56,6 +56,9 @@ func updateDevTable(devList []string) {
 			if err != nil {
 				log.Printf("监听失败:%s,%s\n", "localhost:"+id, err.Error())
 			}
+			if listen == nil {
+				log.Fatalln("listen == nil")
+			}
 			go devAcceptConn(listen, id)
 		}
 	}
@@ -116,14 +119,19 @@ func handleDevMsg(id string, conn net.Conn) {
 			log.Fatalln("读设备数据错误:", err.Error())
 		}
 		//处理后发送给主服务器
+		fmt.Printf("收到 %s：%v %s\n", id, buff[:n], string(buff[:n]))
 		sendServ(buff[:n])
 	}
 }
 
 // getDevTypeByID 通过ID获取设备类型
 func getDevTypeByID(id string) (devType string) {
-	t, _ := strconv.Atoi(id)
-	switch t / 100 {
+	t, err := strconv.Atoi(id)
+	if err != nil {
+		log.Fatalf("数字转化失败：%s\n", err.Error())
+	}
+	//fmt.Printf("%s-->%d t/100=%v\n", id, t, t/100)
+	switch t / 1000 {
 	case 50:
 		devType = "塔吊"
 	case 51:
@@ -186,6 +194,10 @@ func handleMsg() {
 			fmt.Printf("Json解析失败：%s\n", err.Error())
 		}
 		//fmt.Println("jsonData:", jsonData)
+		if jsonData == nil {
+			log.Println("json数据为空")
+			continue
+		}
 		switch jsonData["MsgType"].(string) {
 		case "Serv":
 			fmt.Println(jsonData["MsgType"])
@@ -204,7 +216,13 @@ func handleMsg() {
 			//fmt.Println("case Devices")
 			id := jsonData["ID"].(string)
 			act := jsonData["Action"].(string)
-			servMsgHandleTable[getDevTypeByID(id)](id, act)
+			//servMsgHandleTable[getDevTypeByID(id)](id, act)
+			handle := servMsgHandleTable[getDevTypeByID(id)]
+			if handle == nil {
+				log.Printf("获取处理函数错误：%s\n", getDevTypeByID(id))
+			} else {
+				handle(id, act)
+			}
 			//HandleServMsg(msg)
 		default:
 			fmt.Println("default")
@@ -213,10 +231,10 @@ func handleMsg() {
 
 }
 
+// IntiDevice 初始化设备连接
 func IntiDevice() error {
 	initDevHandle()
 	reqDevList()
 	go handleMsg() //处理来自服务器的消息
 	return nil
 }
-
