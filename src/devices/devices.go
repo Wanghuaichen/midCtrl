@@ -18,7 +18,7 @@ type handleServMsgFunc func(id string, action string)
 var servMsgHandleTable = make(map[string]handleServMsgFunc, 10)
 
 // devConnTable 设备连接表,key为设备ID直接使用连接端口号做ID
-var devConnTable = make(map[string](*net.Conn), 50)
+var devConnTable = make(map[string](net.Conn), 50)
 
 // toServCh 所有要发给主服务器的数据先发送到toServCh通道，由中间层转发
 var toServCh = make(chan []byte, 100)
@@ -55,9 +55,11 @@ func updateDevTable(devList []string) {
 			listen, err := net.Listen("tcp", "localhost:"+id)
 			if err != nil {
 				log.Printf("监听失败:%s,%s\n", "localhost:"+id, err.Error())
+				continue
 			}
 			if listen == nil {
-				log.Fatalln("listen == nil")
+				log.Println("listen == nil")
+				continue
 			}
 			go devAcceptConn(listen, id)
 		}
@@ -65,17 +67,13 @@ func updateDevTable(devList []string) {
 	fmt.Printf("devConnTable:%v\n", devConnTable)
 }
 
-/*func getDevConnTbale() map[string](*net.Conn) {
-	return devConnTable
-}*/
-
 // GetConn 通过ID获取当前链接
-func getConn(id string) *net.Conn {
+func getConn(id string) net.Conn {
 	return devConnTable[id]
 }
 
 // BindConn 绑定连接到具体设备
-func bindConn(id string, conn *net.Conn) {
+func bindConn(id string, conn net.Conn) {
 	devConnTable[id] = conn
 }
 
@@ -97,15 +95,6 @@ func initDevHandle() {
 	//devHandle["扬尘"] = devices.YangChenHandleMsg
 }
 
-// HandleServMsg 处理服务器要操作设备的消息
-/*func HandleServMsg(msg []byte) {
-	jsonData := make(map[string]interface{})
-	err := json.Unmarshal(msg, &jsonData)
-	if err != nil {
-		fmt.Printf("Json解析失败：%s\n", err.Error())
-	}
-}*/
-
 // HandleDevMsg 处理设备发上来的数据
 func handleDevMsg(id string, conn net.Conn) {
 	for {
@@ -115,7 +104,7 @@ func handleDevMsg(id string, conn net.Conn) {
 			continue
 		}
 		if err != nil {
-			log.Fatalln("读设备数据错误:", err.Error())
+			log.Println("读设备数据错误:", err.Error())
 		}
 		//处理后发送给主服务器
 		fmt.Printf("收到 %s：%v %s\n", id, buff[:n], string(buff[:n]))
@@ -127,7 +116,8 @@ func handleDevMsg(id string, conn net.Conn) {
 func getDevTypeByID(id string) (devType string) {
 	t, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatalf("数字转化失败：%s\n", err.Error())
+		log.Printf("数字转化失败：%s\n", err.Error())
+		return ""
 	}
 	//fmt.Printf("%s-->%d t/100=%v\n", id, t, t/100)
 	switch t / 1000 {
@@ -145,16 +135,6 @@ func getDevTypeByID(id string) (devType string) {
 	return devType
 }
 
-// devCreateListen 使用设备ID即固定端口号创建监听设备
-/*func devCreateListen(port string) (net.Listener, error) {
-	listen, err := net.Listen("tcp", "localhost:"+string(port))
-	if err != nil {
-		log.Printf("监听失败:%s,%s\n", "localhost:"+port, err.Error())
-		return nil, err
-	}
-	return listen, nil
-}
-*/
 // devAcceptConn 等待设备连接，创建连接
 func devAcceptConn(l net.Listener, port string) {
 	for {
@@ -164,24 +144,18 @@ func devAcceptConn(l net.Listener, port string) {
 			continue
 		}
 		fmt.Printf("建立连接成功:%s\n", port)
-		bindConn(port, &conn)
-		handleDevMsg(port, conn)
+		bindConn(port, conn)
+		//handleDevMsg(port, conn)
 	}
 }
 
-// IntiDeviceConn 初始化设备链接
-/*func IntiDeviceConn() (err error) {
-	for port := range devices.GetDevConnTbale() {
-		l, err := devCreateListen(port)
-		if err == nil {
-			go devAcceptConn(l, port)
-		} else {
-			log.Printf("监听[%s]建立连接错误:%s\n", port, err.Error())
-		}
+func checkID(id string) bool {
+	if id == "" {
+		return false
 	}
-	return err
+	return true
 }
-*/
+
 // 处理每条json数据
 func handleMsg() {
 	for {
@@ -190,6 +164,7 @@ func handleMsg() {
 		err := json.Unmarshal(msg, &jsonData)
 		if err != nil {
 			fmt.Printf("Json解析失败：%s\n", err.Error())
+			continue
 		}
 		//fmt.Println("jsonData:", jsonData)
 		if jsonData == nil {
@@ -204,7 +179,10 @@ func handleMsg() {
 				//fmt.Println(jsonData["Action"])
 				devList := make([]string, 0, 50)
 				for _, id := range jsonData["Data"].([]interface{}) {
-					//fmt.Println(id)
+					//fmt.Println(id)  //后期需要判断ID是否符合要求
+					if !checkID(id.(string)) {
+						continue
+					}
 					devList = append(devList, id.(string))
 				}
 				//fmt.Println(devList)

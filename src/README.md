@@ -11,7 +11,7 @@
 ## 消息说明
 
 1. 中间件和服务器通信格式  MsgType:Serv
-如:{"MsgType":"Serv","Action":"DevList","Data":["500001",600001]}  //5 6区分不同类型
+如:{"MsgType":"Serv","Action":"DevList","Data":["510001",520001]}  //5 6区分不同类型
 Action:
     - DevList 
 

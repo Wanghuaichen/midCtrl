@@ -6,9 +6,9 @@ import (
 	"bufio"
 	"config"
 	"fmt"
-	"io"
 	"log"
 	"net"
+	"time"
 )
 
 // serviceConn 和主服务器的连接
@@ -28,6 +28,7 @@ func SendData(data []byte) {
 	recvCh <- data
 }
 
+// GetData 获取服务器数据
 func GetData() []byte {
 	return <-sendCh
 }
@@ -37,7 +38,11 @@ func handleSendServ(serviceConn net.Conn) {
 	defer serviceConn.Close()
 	for {
 		data := <-recvCh
-		serviceConn.Write(data)
+		fmt.Printf("给服务发送：%s\n", string(data))
+		_, err := serviceConn.Write(data)
+		if err != nil {
+			log.Printf("给服务器发送数据错误：%s\n", err.Error())
+		}
 	}
 }
 
@@ -48,13 +53,16 @@ func handleRecvServ(serviceConn net.Conn) {
 		//buff := make([]byte, 1024)
 		//serviceConn.Read(buff)
 		msg, err := bufio.NewReader(serviceConn).ReadSlice('\n')
-		if err == io.EOF {
-			continue // 继续等待读
-		} else if err != nil {
-			log.Fatal("获取服务器数据错误:", err)
+		if err != nil {
+			log.Println("获取服务器数据错误:", err)
+			// 可能发送了错误要重连
+			return
 		}
 		fmt.Println("收到:", msg, "str:", string(msg))
 		//msg = strings.TrimRight(msg, "\n")
+		if 0 == len(msg) {
+			continue
+		}
 		msg = msg[:len(msg)-1] //移除最后的'\n'
 		//msg := handleBuff(buff)
 		sendCh <- msg
@@ -62,16 +70,26 @@ func handleRecvServ(serviceConn net.Conn) {
 	}
 }
 
-//InitServerConn 初始化连接主服务器连接
-func InitServ() error {
+//InitServ 初始化连接主服务器连接
+func InitServ() {
 	//建立服务器连接
 	serviceAddr := config.GetServiceAddr()
-	serviceConn, err := net.Dial("tcp", serviceAddr)
-	if err != nil {
-		log.Printf("连接服务器错:%s,%s\n", serviceAddr, err.Error())
-		return err
+	tryTimes := 0
+	var serviceConn net.Conn
+	//服务器如果连接不成功，则一直重连
+	for {
+		conn, err := net.Dial("tcp", serviceAddr)
+		if err != nil {
+			log.Printf("连接服务器错:%s,%s\n", serviceAddr, err.Error())
+			time.Sleep(time.Second * 3)
+			tryTimes++
+			fmt.Printf("第%v重连服务器\n", tryTimes)
+			continue
+		}
+		serviceConn = conn
+		break
 	}
+
 	go handleSendServ(serviceConn) //处理发送给主服务器的数据
 	go handleRecvServ(serviceConn) //接收处理来着主服务器的数据
-	return nil
 }

@@ -1,0 +1,7 @@
+2017/05/11 23:59:58 serv.go:59: 获取服务器数据错误: read tcp 127.0.0.1:8566->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
+2017/05/12 00:02:22 serv.go:59: 获取服务器数据错误: read tcp 127.0.0.1:9516->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
+2017/05/12 00:13:23 serv.go:57: 获取服务器数据错误: read tcp 127.0.0.1:10219->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
+2017/05/12 00:13:53 dian_biao.go:99: 获取连接错误：51001
+2017/05/12 00:20:08 dian_biao.go:64: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:10295: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/12 00:20:08 dian_biao.go:106: 获取设备数据失败：write tcp 127.0.0.1:51001->127.0.0.1:10295: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/12 00:20:08 dian_biao.go:112: 51001断开连接
