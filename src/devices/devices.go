@@ -104,7 +104,6 @@ func initDevHandle() {
 	if err != nil {
 		fmt.Printf("Json解析失败：%s\n", err.Error())
 	}
-
 }*/
 
 // HandleDevMsg 处理设备发上来的数据
@@ -181,7 +180,6 @@ func devAcceptConn(l net.Listener, port string) {
 		}
 	}
 	return err
-
 }
 */
 // 处理每条json数据
@@ -229,6 +227,12 @@ func handleMsg() {
 		}
 	}
 
+}
+
+//把获取的设备数据分装到json中
+func generateDataJsonStr(id string, action string, data string) string {
+	str := fmt.Sprintf(`{"MsgType":"Devices","ID":"%s","Action":"%s","Data":"%s"}`, id, action, data)
+	return str
 }
 
 // IntiDevice 初始化设备连接
