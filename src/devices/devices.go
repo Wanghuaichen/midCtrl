@@ -14,11 +14,56 @@ import (
 // handleDevMsg 设备消息处理函数
 type handleServMsgFunc func(id string, action string)
 
-// devHandle 不同类型设备消息处理函数映射表，key为设备类型
+// devHandle 不同类型设备消息处理函数映射表，string 是key为设备类型
 var servMsgHandleTable = make(map[string]handleServMsgFunc, 10)
 
 // devConnTable 设备连接表,key为设备ID直接使用连接端口号做ID
-var devConnTable = make(map[string](net.Conn), 50)
+//var devConnTable = make(map[string](net.Conn), 50)
+type devConnTable map[string](net.Conn)
+
+// 第一个string为设备类型，值为一个包含设备好和其所对应连接的表
+var devTypeTable = make(map[string]devConnTable, 10)
+
+func initDevTypeTbale() {
+	devTypeTable["电表"] = make(map[string](net.Conn), 10)
+	devTypeTable["水表"] = make(map[string](net.Conn), 10)
+	devTypeTable["塔吊"] = make(map[string](net.Conn), 10)
+	devTypeTable["污水"] = make(map[string](net.Conn), 10)
+	devTypeTable["扬尘"] = make(map[string](net.Conn), 10)
+	devTypeTable["噪音"] = make(map[string](net.Conn), 10)
+	devTypeTable["RFID"] = make(map[string](net.Conn), 10)
+}
+
+// 返回id对应设备类型的所有连接表
+func findDevConnTbale(id string) devConnTable {
+	ID, err := strconv.Atoi(id)
+	if err != nil {
+		log.Printf("转化%s错误：%s\n", id, err)
+		return nil
+	}
+	if ID >= 51000 && ID < 52000 {
+		return devTypeTable["电表"]
+	}
+	if ID >= 52000 && ID < 53000 {
+		return devTypeTable["水表"]
+	}
+	if ID >= 53000 && ID < 54000 {
+		return devTypeTable["塔吊"]
+	}
+	if ID >= 54000 && ID < 55000 {
+		return devTypeTable["污水"]
+	}
+	if ID >= 55000 && ID < 56000 {
+		return devTypeTable["扬尘"]
+	}
+	if ID >= 56000 && ID < 57000 {
+		return devTypeTable["噪音"]
+	}
+	if ID >= 57000 && ID < 58000 {
+		return devTypeTable["RFID"]
+	}
+	return nil
+}
 
 // toServCh 所有要发给主服务器的数据先发送到toServCh通道，由中间层转发
 var toServCh = make(chan []byte, 100)
@@ -45,10 +90,19 @@ func SendData(data []byte) {
 func getServ() []byte {
 	return <-formServCh
 }
+func relayError(id string, errType string) {
+	json := generateDataJsonStr(id, "ERROR", errType)
+	sendServ([]byte(json))
+}
 
 // updateDevTable 从服务器获取数据，更新设备列表
 func updateDevTable(devList []string) {
 	for _, id := range devList {
+		devConnTable := findDevConnTbale(id)
+		if devConnTable == nil {
+			log.Printf("%s是一个无效的ID，它不存在于各设备\n", id)
+			continue
+		}
 		_, ok := devConnTable[id]
 		if !ok {
 			devConnTable[id] = nil
@@ -64,21 +118,24 @@ func updateDevTable(devList []string) {
 			go devAcceptConn(listen, id)
 		}
 	}
-	fmt.Printf("devConnTable:%v\n", devConnTable)
+	fmt.Printf("devConnTable:%v\n", devTypeTable)
 }
 
 // GetConn 通过ID获取当前链接
 func getConn(id string) net.Conn {
+	devConnTable := findDevConnTbale(id)
 	return devConnTable[id]
 }
 
 // BindConn 绑定连接到具体设备
 func bindConn(id string, conn net.Conn) {
+	devConnTable := findDevConnTbale(id)
 	devConnTable[id] = conn
 }
 
 // UnBindConn 解除设备的连接绑定
 func unBindConn(id string) {
+	devConnTable := findDevConnTbale(id)
 	devConnTable[id] = nil
 }
 
@@ -216,7 +273,9 @@ func generateDataJsonStr(id string, action string, data string) string {
 // IntiDevice 初始化设备连接
 func IntiDevice() error {
 	initDevHandle()
+	initDevTypeTbale()
 	reqDevList()
 	go handleMsg() //处理来自服务器的消息
+	dianBiaoIntAutoGet()
 	return nil
 }

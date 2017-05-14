@@ -23,6 +23,8 @@ PM210A_Address	|Function_Code	|Byte_Count	|Read_Data(low word) |Read_Data(high w
 1~254 			|3 				|4 			|Y1 Y2 				 |Y3 Y4 			   |ZL ZH
 [notes]
 Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * Unit
+
+电表设备使用 【51000，52000）端口
 */
 
 package devices
@@ -31,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"strconv"
 	"time"
@@ -42,22 +45,113 @@ const (
 
 var readFormt = make([]byte, 0, 20)
 
+//string 行为，int间隔秒数
+var dianBiaoActionTimes = map[string]time.Duration{"总电量": 5 * time.Second, "功率": 10 * time.Second, "PT": 15 * time.Second, "CT": 20 * time.Second}
+var dianBiaoSync = make(chan bool, 1)
+
+// 初始化按自动间隔获取数据
+func dianBiaoIntAutoGet() {
+	dianBiaoSync <- true
+	go diaoBiaoAutoGetPower()
+	go diaoBiaoAutoGetTotalEnergy()
+	go diaoBiaoAutoGetPT()
+	go diaoBiaoAutoGetCT()
+	/*	for {
+		if <-dianBiaoSync {
+			for id, _ := range devTypeTable["电表"] {
+				readPower(id)
+				time.Sleep(dianBiaoActionTimes["功率"])
+			}
+		}
+	}*/
+}
+
+func delay() {
+	rand.Seed(time.Now().UnixNano())
+	delayMs := rand.Uint32()%500 + 500
+	time.Sleep(time.Duration(delayMs))
+}
+
+func diaoBiaoAutoGetPower() {
+	for {
+		if <-dianBiaoSync {
+			for id, _ := range devTypeTable["电表"] {
+				readPower(id)
+				time.Sleep(dianBiaoActionTimes["功率"])
+			}
+		}
+		delay()
+		dianBiaoSync <- true
+
+	}
+}
+
+func diaoBiaoAutoGetTotalEnergy() {
+	for {
+		if <-dianBiaoSync {
+			for id, _ := range devTypeTable["电表"] {
+				readTotalEnergy(id)
+				time.Sleep(dianBiaoActionTimes["总电量"])
+			}
+		}
+		delay()
+		dianBiaoSync <- true
+	}
+}
+func diaoBiaoAutoGetPT() {
+	for {
+		if <-dianBiaoSync {
+			for id, _ := range devTypeTable["电表"] {
+				readtPT(id)
+				time.Sleep(dianBiaoActionTimes["PT"])
+			}
+		}
+		delay()
+		dianBiaoSync <- true
+	}
+}
+func diaoBiaoAutoGetCT() {
+	for {
+		if <-dianBiaoSync {
+			for id, _ := range devTypeTable["电表"] {
+				readCT(id)
+				time.Sleep(dianBiaoActionTimes["CT"])
+			}
+		}
+		delay()
+		dianBiaoSync <- true
+	}
+}
+
 // DianBiaoHandleMsg 电表的消息处理
 func DianBiaoHandleMsg(id string, action string) {
 	switch action {
 	case "总电量":
 		readTotalEnergy(id)
 	case "功率":
+		readPower(id)
+	case "PT":
+		readtPT(id)
+	case "CT":
+		readCT(id)
+	case "getAll":
 	}
 }
 
-func reqDevData(conn net.Conn, cmd []byte, tryTimes int) (rspData []byte, err error) {
+func reqDevData(id string, cmd []byte, addCRC func([]byte) []byte, checkCRC func([]byte) bool) (rspData []byte, err error) {
+	conn := getConn(id)
+	if conn == nil {
+		log.Printf("获取连接错误：%s\n", id)
+		err = errors.New("获取连接错误")
+		return []byte{}, err
+	}
+
 	cmd = addCRC(cmd)
 	var len int
-	buff := make([]byte, 20)
-	fmt.Printf("请求设备数据：%v\n", tryTimes)
+	buff := make([]byte, 30) //接收数据的buff
+
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	for ; tryTimes > 0; tryTimes-- {
+	for tryTimes := 3; tryTimes > 0; tryTimes-- {
 		fmt.Printf("写入设备数据：%v\n", cmd)
 		_, err = conn.Write(cmd) //发送数据到设备
 		if err != nil {
@@ -68,7 +162,6 @@ func reqDevData(conn net.Conn, cmd []byte, tryTimes int) (rspData []byte, err er
 		//读取设备回复的数据
 		len, err = (conn).Read(buff)
 		if err != nil {
-
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				log.Printf("读取数据超时:%s\n", err.Error())
 				continue
@@ -78,9 +171,8 @@ func reqDevData(conn net.Conn, cmd []byte, tryTimes int) (rspData []byte, err er
 				if err != nil {
 					log.Println("写入设备数据失败：", err.Error())
 					return []byte{}, err
-				} else {
-					continue
 				}
+				continue
 			}
 		}
 		if !checkCRC(buff[:len]) {
@@ -91,35 +183,35 @@ func reqDevData(conn net.Conn, cmd []byte, tryTimes int) (rspData []byte, err er
 		break
 	}
 	rspData = buff[:len]
-	return
-}
-func readTotalEnergy(id string) {
-	conn := getConn(id)
-	if conn == nil {
-		log.Printf("获取连接错误：%s\n", id)
-		return
-	}
-	//构造要发送的数据，计算CRC
-	data := []byte{0x1, 0x3, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0}
-	buff, err := reqDevData(conn, data, 3)
 	if err != nil {
 		log.Printf("获取设备数据失败：%s\n", err.Error())
 		if err.Error() == CRC_ERROR {
 			log.Println("获取总电量时CRC 校验失败")
 		} else if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 			log.Println("不能读到设备数据，需要检查设备和转化设备连接是否正常")
+			relayError(id, "NO_Data")
 		} else {
 			log.Printf("%s断开连接\n", id)
 			unBindConn(id) //连接已经断开
 			conn.Close()
+			relayError(id, "Disconnect")
 		}
 		return
 	}
-	fmt.Printf("收到设备数据：%v\n", buff)
-	// (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * unit
+	fmt.Printf("收到设备数据：%v\n", buff[:len])
+	return
+}
+
+func readTotalEnergy(id string) {
+	//构造要发送的数据，计算CRC
+	data := []byte{0x1, 0x3, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0}
+	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	if err != nil {
+		return
+	}
+	// (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.01)KwH
 	totalEnergy := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
 	totalEnergyStr := strconv.FormatFloat(float64(totalEnergy)*0.01, 'f', 2, 64)
-
 	sendServ([]byte(generateDataJsonStr(id, "总电量", totalEnergyStr)))
 }
 func writeTotalEnergy(id string) {
@@ -129,16 +221,39 @@ func writeTotalEnergy(id string) {
 // 获取当前功率
 func readPower(id string) {
 	data := []byte{0x1, 0x3, 0x0, 0x8, 0x0, 0x2, 0x0, 0x0}
-	data = addCRC(data)
-	//(*conn).Write(data) //发送数据到设备
+	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	if err != nil {
+		return
+	}
+	//Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.001) Kw
+	power := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
+	powerStr := strconv.FormatFloat(float64(power)*0.001, 'f', 3, 64)
+	sendServ([]byte(generateDataJsonStr(id, "功率", powerStr)))
 }
 
 func readtPT(id string) {
-
+	data := []byte{0x1, 0x3, 0x0, 0x10, 0x0, 0x1, 0x0, 0x0}
+	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	if err != nil {
+		return
+	}
+	//Data = (Y1*256 + Y2) * (unit = 0.01)
+	pt := uint32(buff[3])*0x100 + uint32(buff[4])
+	PtStr := strconv.FormatFloat(float64(pt)*0.01, 'f', 2, 64)
+	sendServ([]byte(generateDataJsonStr(id, "PT", PtStr)))
 }
 
 func readCT(id string) {
-
+	data := []byte{0x1, 0x3, 0x0, 0x11, 0x0, 0x1, 0x0, 0x0}
+	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	if err != nil {
+		return
+	}
+	//Data = (Y1 * 256 + Y2) * (unit=1)
+	ct := uint32(buff[3])*0x100 + uint32(buff[4])
+	//CtStr := strconv.FormatFloat(float64(ct), 'f', 2, 64)
+	CtStr := strconv.FormatUint(uint64(ct), 10)
+	sendServ([]byte(generateDataJsonStr(id, "CT", CtStr)))
 }
 
 /*
@@ -189,18 +304,17 @@ func crc16Modbus(data []byte) (low byte, high byte) {
 	return low, high
 }
 
-func checkCRC(data []byte) bool {
+func dianBiaoCheckCRC(data []byte) bool {
 	len := len(data)
 	l, h := crc16Modbus(data[:len-2])
 	if l == data[len-2] && h == data[len-1] {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
-// addCRC 把数据后两位改为CRC校验码
-func addCRC(data []byte) []byte {
+// dianBiaoAddCRC 把数据后两位改为CRC校验码
+func dianBiaoAddCRC(data []byte) []byte {
 	len := len(data)
 	l, h := crc16Modbus(data[:len-2])
 	data[len-2] = l

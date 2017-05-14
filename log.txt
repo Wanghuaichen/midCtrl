@@ -1,7 +1,25 @@
-2017/05/11 23:59:58 serv.go:59: 获取服务器数据错误: read tcp 127.0.0.1:8566->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
-2017/05/12 00:02:22 serv.go:59: 获取服务器数据错误: read tcp 127.0.0.1:9516->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
-2017/05/12 00:13:23 serv.go:57: 获取服务器数据错误: read tcp 127.0.0.1:10219->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
-2017/05/12 00:13:53 dian_biao.go:99: 获取连接错误：51001
-2017/05/12 00:20:08 dian_biao.go:64: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:10295: wsasend: An existing connection was forcibly closed by the remote host.
-2017/05/12 00:20:08 dian_biao.go:106: 获取设备数据失败：write tcp 127.0.0.1:51001->127.0.0.1:10295: wsasend: An existing connection was forcibly closed by the remote host.
-2017/05/12 00:20:08 dian_biao.go:112: 51001断开连接
+2017/05/14 20:37:40 devices.go:103: 50001是一个无效的ID，它不存在于各设备
+2017/05/14 20:37:40 devices.go:103: 60001是一个无效的ID，它不存在于各设备
+2017/05/14 20:43:45 devices.go:103: 50001是一个无效的ID，它不存在于各设备
+2017/05/14 20:43:45 dian_biao.go:131: 获取连接错误：51001
+2017/05/14 20:43:45 devices.go:103: 60001是一个无效的ID，它不存在于各设备
+2017/05/14 21:06:00 devices.go:103: 50001是一个无效的ID，它不存在于各设备
+2017/05/14 21:06:00 dian_biao.go:131: 获取连接错误：51001
+2017/05/14 21:06:00 devices.go:103: 60001是一个无效的ID，它不存在于各设备
+2017/05/14 22:44:36 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:44:39 serv.go:57: 获取服务器数据错误: read tcp 127.0.0.1:14077->127.0.0.1:7010: wsarecv: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:44:41 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:44:51 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:45:11 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:45:26 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:45:31 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:45:41 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:46:01 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:46:16 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:46:21 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:46:31 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:46:51 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:47:06 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:47:11 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:47:21 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/14 22:47:41 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
