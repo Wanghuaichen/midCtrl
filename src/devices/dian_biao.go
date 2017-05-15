@@ -56,14 +56,6 @@ func dianBiaoIntAutoGet() {
 	go diaoBiaoAutoGetTotalEnergy()
 	go diaoBiaoAutoGetPT()
 	go diaoBiaoAutoGetCT()
-	/*	for {
-		if <-dianBiaoSync {
-			for id, _ := range devTypeTable["电表"] {
-				readPower(id)
-				time.Sleep(dianBiaoActionTimes["功率"])
-			}
-		}
-	}*/
 }
 
 func delay() {
@@ -75,21 +67,19 @@ func delay() {
 func diaoBiaoAutoGetPower() {
 	for {
 		if <-dianBiaoSync {
-			for id, _ := range devTypeTable["电表"] {
+			for _, id := range devTypeTable["电表"] {
 				readPower(id)
-				time.Sleep(dianBiaoActionTimes["功率"])
 			}
+			dianBiaoSync <- true
+			time.Sleep(dianBiaoActionTimes["功率"])
 		}
-		delay()
-		dianBiaoSync <- true
-
 	}
 }
 
 func diaoBiaoAutoGetTotalEnergy() {
 	for {
 		if <-dianBiaoSync {
-			for id, _ := range devTypeTable["电表"] {
+			for _, id := range devTypeTable["电表"] {
 				readTotalEnergy(id)
 				time.Sleep(dianBiaoActionTimes["总电量"])
 			}
@@ -101,7 +91,7 @@ func diaoBiaoAutoGetTotalEnergy() {
 func diaoBiaoAutoGetPT() {
 	for {
 		if <-dianBiaoSync {
-			for id, _ := range devTypeTable["电表"] {
+			for _, id := range devTypeTable["电表"] {
 				readtPT(id)
 				time.Sleep(dianBiaoActionTimes["PT"])
 			}
@@ -113,7 +103,7 @@ func diaoBiaoAutoGetPT() {
 func diaoBiaoAutoGetCT() {
 	for {
 		if <-dianBiaoSync {
-			for id, _ := range devTypeTable["电表"] {
+			for _, id := range devTypeTable["电表"] {
 				readCT(id)
 				time.Sleep(dianBiaoActionTimes["CT"])
 			}
@@ -124,7 +114,7 @@ func diaoBiaoAutoGetCT() {
 }
 
 // DianBiaoHandleMsg 电表的消息处理
-func DianBiaoHandleMsg(id string, action string) {
+/*func DianBiaoHandleMsg(id string, action string) {
 	switch action {
 	case "总电量":
 		readTotalEnergy(id)
@@ -137,11 +127,11 @@ func DianBiaoHandleMsg(id string, action string) {
 	case "getAll":
 	}
 }
-
-func reqDevData(id string, cmd []byte, addCRC func([]byte) []byte, checkCRC func([]byte) bool) (rspData []byte, err error) {
+*/
+func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([]byte) bool) (rspData []byte, err error) {
 	conn := getConn(id)
 	if conn == nil {
-		log.Printf("获取连接错误：%s\n", id)
+		log.Printf("获取连接错误：%d\n", id)
 		err = errors.New("获取连接错误")
 		return []byte{}, err
 	}
@@ -189,12 +179,12 @@ func reqDevData(id string, cmd []byte, addCRC func([]byte) []byte, checkCRC func
 			log.Println("获取总电量时CRC 校验失败")
 		} else if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 			log.Println("不能读到设备数据，需要检查设备和转化设备连接是否正常")
-			relayError(id, "NO_Data")
+			//relayError(id, "NO_Data")
 		} else {
-			log.Printf("%s断开连接\n", id)
+			log.Printf("%d断开连接\n", id)
 			unBindConn(id) //连接已经断开
 			conn.Close()
-			relayError(id, "Disconnect")
+			//relayError(id, "Disconnect")
 		}
 		return
 	}
@@ -202,7 +192,7 @@ func reqDevData(id string, cmd []byte, addCRC func([]byte) []byte, checkCRC func
 	return
 }
 
-func readTotalEnergy(id string) {
+func readTotalEnergy(id uint) {
 	//构造要发送的数据，计算CRC
 	data := []byte{0x1, 0x3, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0}
 	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
@@ -212,14 +202,14 @@ func readTotalEnergy(id string) {
 	// (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.01)KwH
 	totalEnergy := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
 	totalEnergyStr := strconv.FormatFloat(float64(totalEnergy)*0.01, 'f', 2, 64)
-	sendServ([]byte(generateDataJsonStr(id, "总电量", totalEnergyStr)))
+	//sendServ([]byte(generateDataJsonStr(id, "总电量", totalEnergyStr)))
 }
 func writeTotalEnergy(id string) {
 
 }
 
 // 获取当前功率
-func readPower(id string) {
+func readPower(id uint) {
 	data := []byte{0x1, 0x3, 0x0, 0x8, 0x0, 0x2, 0x0, 0x0}
 	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
 	if err != nil {
@@ -228,10 +218,9 @@ func readPower(id string) {
 	//Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.001) Kw
 	power := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
 	powerStr := strconv.FormatFloat(float64(power)*0.001, 'f', 3, 64)
-	sendServ([]byte(generateDataJsonStr(id, "功率", powerStr)))
 }
 
-func readtPT(id string) {
+func readtPT(id uint) {
 	data := []byte{0x1, 0x3, 0x0, 0x10, 0x0, 0x1, 0x0, 0x0}
 	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
 	if err != nil {
@@ -240,10 +229,9 @@ func readtPT(id string) {
 	//Data = (Y1*256 + Y2) * (unit = 0.01)
 	pt := uint32(buff[3])*0x100 + uint32(buff[4])
 	PtStr := strconv.FormatFloat(float64(pt)*0.01, 'f', 2, 64)
-	sendServ([]byte(generateDataJsonStr(id, "PT", PtStr)))
 }
 
-func readCT(id string) {
+func readCT(id uint) {
 	data := []byte{0x1, 0x3, 0x0, 0x11, 0x0, 0x1, 0x0, 0x0}
 	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
 	if err != nil {
@@ -253,7 +241,6 @@ func readCT(id string) {
 	ct := uint32(buff[3])*0x100 + uint32(buff[4])
 	//CtStr := strconv.FormatFloat(float64(ct), 'f', 2, 64)
 	CtStr := strconv.FormatUint(uint64(ct), 10)
-	sendServ([]byte(generateDataJsonStr(id, "CT", CtStr)))
 }
 
 /*

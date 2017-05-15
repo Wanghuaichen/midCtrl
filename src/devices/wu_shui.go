@@ -4,7 +4,7 @@
 //这个协议很不明确
 package devices
 
-func readWS(id string) {
+func readWS(id uint) {
 	//构造要发送的数据，计算CRC
 	data := []byte{0x08, 0x03, 0x00, 0x00, 0x00, 0x06, 0x51, 0xc5}
 	buff, err := reqDevData(id, data, wuShuiAddCRC, wuShuiCheckCRC)
@@ -13,7 +13,7 @@ func readWS(id string) {
 	}
 	//Data = (Y1*256 + Y2) * (unit = 0.01)
 	wuShui := buff[3:14]
-	sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
+	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
 }
 
 /* CRC 高位字节值表 */
