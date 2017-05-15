@@ -9,8 +9,16 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
+	"errors"
+	"net/http"
+	"io/ioutil"
 )
 
+
+const (
+	offline = uint(0)
+)
 // handleDevMsg 设备消息处理函数
 type handleServMsgFunc func(id string, action string)
 
@@ -21,21 +29,79 @@ var servMsgHandleTable = make(map[string]handleServMsgFunc, 10)
 //var devConnTable = make(map[string](net.Conn), 50)
 type devConnTable map[string](net.Conn)
 
-// 第一个string为设备类型，值为一个包含设备好和其所对应连接的表
-var devTypeTable = make(map[string]devConnTable, 10)
 
+
+//设备类型
+type Device struct{
+	hardwareId uint
+	port	   uint
+	hardwareCode string
+	conn	net.Conn
+	handle  handleServMsgFunc
+	state	uint
+}
+var devList = make([]Device,100,100)  //设备列表
+
+//以port为索引，保存设备列表
+var portTable = make(map[uint]uint)
+
+// 第一个string为设备类型，值为在devlist中对应的索引
+var devTypeTable = make(map[string][]uint, 10)
+/*
+TADIAO-001= 塔吊
+YANGCHEN-001= 扬尘监测
+DIANTI-001  =  电梯
+RFID-001 = RFID识别器
+SHUIBIA-O001 = 智能水表
+DIANBIAO-001= 智能电表
+WUSHUI-001= 污水监测
+DIBANG-001 = 地磅
+SHEXIANGTOU-001 = 摄像头
+*/
+
+func getDevType(dev string)(result string,err error){
+	devType := strings.Split(dev,"-")[0]
+	switch devType {
+		case "TADIAO":
+		result = "电表"
+		case "SHUIBIA":
+		result = "水表"
+		case "TADIAO":
+		result = "塔吊"
+		case "WUSHUI":
+		result = "污水"
+		case "YANGCHEN":
+		result = "扬尘"
+		case "ZAOYIN":
+		result = "噪音"
+		case "RFID":
+		result = "RFID"
+		case "DIANTI":
+		result = "电梯"
+		case "DIBANG":
+		result = "地磅"
+		case "SHEXIANGTOU":
+		result = "摄像头"
+		default:
+			err=errors.New("设备类型不存在")
+	}
+	return result, err
+}
 func initDevTypeTbale() {
-	devTypeTable["电表"] = make(map[string](net.Conn), 10)
-	devTypeTable["水表"] = make(map[string](net.Conn), 10)
-	devTypeTable["塔吊"] = make(map[string](net.Conn), 10)
-	devTypeTable["污水"] = make(map[string](net.Conn), 10)
-	devTypeTable["扬尘"] = make(map[string](net.Conn), 10)
-	devTypeTable["噪音"] = make(map[string](net.Conn), 10)
-	devTypeTable["RFID"] = make(map[string](net.Conn), 10)
+	devTypeTable["电表"] = make([]uint, 0, 10)
+	devTypeTable["水表"] = make([]uint, 0, 10)
+	devTypeTable["塔吊"] = make([]uint, 0, 10)
+	devTypeTable["污水"] = make([]uint, 0, 10)
+	devTypeTable["扬尘"] = make([]uint, 0, 10)
+	devTypeTable["噪音"] = make([]uint, 0, 10)
+	devTypeTable["RFID"] = make([]uint, 0, 10)
+	devTypeTable["电梯"] = make([]uint, 0, 10)
+	devTypeTable["地磅"] = make([]uint, 0, 10)
+	devTypeTable["摄像头"] = make([]uint, 0, 10)
 }
 
 // 返回id对应设备类型的所有连接表
-func findDevConnTbale(id string) devConnTable {
+/*func findDevConnTbale(id string) devConnTable {
 	ID, err := strconv.Atoi(id)
 	if err != nil {
 		log.Printf("转化%s错误：%s\n", id, err)
@@ -63,7 +129,7 @@ func findDevConnTbale(id string) devConnTable {
 		return devTypeTable["RFID"]
 	}
 	return nil
-}
+}*/
 
 // toServCh 所有要发给主服务器的数据先发送到toServCh通道，由中间层转发
 var toServCh = make(chan []byte, 100)
@@ -96,6 +162,7 @@ func relayError(id string, errType string) {
 }
 
 // updateDevTable 从服务器获取数据，更新设备列表
+/*
 func updateDevTable(devList []string) {
 	for _, id := range devList {
 		devConnTable := findDevConnTbale(id)
@@ -120,13 +187,13 @@ func updateDevTable(devList []string) {
 	}
 	fmt.Printf("devConnTable:%v\n", devTypeTable)
 }
-
+*/
 // GetConn 通过ID获取当前链接
-func getConn(id string) net.Conn {
+/*func getConn(id string) net.Conn {
 	devConnTable := findDevConnTbale(id)
 	return devConnTable[id]
 }
-
+*/
 // BindConn 绑定连接到具体设备
 func bindConn(id string, conn net.Conn) {
 	devConnTable := findDevConnTbale(id)
@@ -140,8 +207,58 @@ func unBindConn(id string) {
 }
 
 // reqDevList 向服务器请求设备列表
-func reqDevList() {
-	sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
+/*{ "code":200, "data":[ { "area":"生活区", "hardwareCode":"DIANBIAO-001", "hardwareId":1, "name":"智能电表", "port":10001 }, { "area":"施工区", "hardwareCode":"DIANBIAO-002", "hardwareId":2, "name":"智能电表", "port":10002 }, { "area":"大门", "hardwareCode":"RFID-001", "hardwareId":3, "name":"RFID读卡器", "port":10003 } ], "errMsg":"" } */
+
+func reqDevList(url string)error {
+	//sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
+	type jsonDev struct{
+		area string
+		hardwareCode string
+		hardwareId uint
+		name string
+		port uint
+	}
+	type jsonDevList struct{
+		code int
+		data []jsonDev
+		errMsg string
+	}
+	var reqDevListData jsonDevList
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("获取设备列表错误：%s\n",err.Error())
+		return err
+	}
+	var content []byte
+	defer resp.Body.Close()
+	content, err =  ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("获取设备列表内容读取失败：%s\n",err.Error())
+		return err
+	}
+	err = json.Unmarshal(content,&reqDevListData)
+	if err!=nil {
+		log.Printf("解析设备列表json数据失败：%s\n",err.Error())
+		return err
+	}
+	if reqDevListData.code != 200 {
+		log.Printf("服务器错误\n")
+		err := errors.New("服务器错误")
+		return err
+	}
+	for _,v:= range reqDevListData.data {
+		var dev Device
+		dev.port = v.port
+		dev.hardwareCode = v.hardwareCode
+		dev.hardwareId = v.hardwareId
+		dev.conn = nil
+		dev.handle =getDevHandle(v.hardwareCode)
+		dev.state = offline
+		devList = append(devList,dev)
+	}
+	fmt.Println(devList)
+	//fmt.Println(string(content))
+
 }
 
 // initDevHandle 初始化设备消息处理映射表
@@ -151,7 +268,13 @@ func initDevHandle() {
 	//devHandle["水表"] = devices.ShuiBiaoHandleMsg
 	//devHandle["扬尘"] = devices.YangChenHandleMsg
 }
-
+func getDevHandle(hardwareCode string)handleServMsgFunc{
+	typeStr, err:= getDevType(hardwareCode)
+	if err!=nil{
+		log.Println(err.Error())
+	}
+	return servMsgHandleTable[typeStr]
+}
 // HandleDevMsg 处理设备发上来的数据
 func handleDevMsg(id string, conn net.Conn) {
 	for {
