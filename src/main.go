@@ -31,7 +31,7 @@ func InitLoger() error {
 func Init() {
 	config.InitConfig()
 	InitLoger()
-	serv.InitServ()
+	//serv.InitServ()
 	devices.IntiDevice()
 }
 func transServMsg() {
@@ -44,12 +44,12 @@ func transServMsg() {
 func main() {
 	Init()
 	// 转发服务器的消息到设备侧处理
-	go transServMsg()
+	//go transServMsg()
 
 	//转发设备侧处理后的消息到主服务器
 	for {
-		data := devices.GetData()
-		fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
-		serv.SendData(data)
+		//data := devices.GetData()
+		//fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
+		//serv.SendData(data)
 	}
 }
