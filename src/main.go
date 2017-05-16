@@ -3,10 +3,8 @@ package main
 import (
 	"config"
 	"devices"
-	"fmt"
 	"log"
 	"os"
-	"serv"
 )
 
 // serviceConn 和主服务器的连接
@@ -34,13 +32,14 @@ func Init() {
 	//serv.InitServ()
 	devices.IntiDevice()
 }
-func transServMsg() {
+
+/*func transServMsg() {
 	for {
 		data := serv.GetData()
 		fmt.Printf("转发到设备侧的数据：%v %s \n", data, string(data))
 		devices.SendData(data)
 	}
-}
+}*/
 func main() {
 	Init()
 	// 转发服务器的消息到设备侧处理

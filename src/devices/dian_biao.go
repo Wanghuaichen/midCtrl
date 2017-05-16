@@ -35,7 +35,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -135,8 +134,10 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 		err = errors.New("获取连接错误")
 		return []byte{}, err
 	}
+	if addCRC != nil {
+		cmd = addCRC(cmd)
+	}
 
-	cmd = addCRC(cmd)
 	var len int
 	buff := make([]byte, 30) //接收数据的buff
 
@@ -165,10 +166,12 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 				continue
 			}
 		}
-		if !checkCRC(buff[:len]) {
-			log.Printf("CRC校验错误：%v\n", buff[:len])
-			err = errors.New(CRC_ERROR)
-			continue
+		if checkCRC != nil {
+			if !checkCRC(buff[:len]) {
+				log.Printf("CRC校验错误：%v\n", buff[:len])
+				err = errors.New(CRC_ERROR)
+				continue
+			}
 		}
 		break
 	}
@@ -201,8 +204,12 @@ func readTotalEnergy(id uint) {
 	}
 	// (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.01)KwH
 	totalEnergy := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
-	totalEnergyStr := strconv.FormatFloat(float64(totalEnergy)*0.01, 'f', 2, 64)
+
+	jsonData := []map[string]interface{}{{"总电量": int64(totalEnergy) * 100}}
+
+	//totalEnergyStr := strconv.FormatFloat(float64(totalEnergy)*0.01, 'f', 2, 64)
 	//sendServ([]byte(generateDataJsonStr(id, "总电量", totalEnergyStr)))
+	sendData(urlTable["电表"], id, jsonData)
 }
 func writeTotalEnergy(id string) {
 
@@ -217,7 +224,12 @@ func readPower(id uint) {
 	}
 	//Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * (unit=0.001) Kw
 	power := uint32(buff[5])*0x1000000 + uint32(buff[6])*0x10000 + uint32(buff[3])*0x100 + uint32(buff[4])
-	powerStr := strconv.FormatFloat(float64(power)*0.001, 'f', 3, 64)
+	//powerStr := strconv.FormatFloat(float64(power)*0.001, 'f', 3, 64)
+	var msg msgData
+	msg.getTime()
+	msg.id = id
+	jsonData := []map[string]interface{}{{"功率": int64(power) * 10}}
+	sendData(urlTable["电表"], id, jsonData)
 }
 
 func readtPT(id uint) {
@@ -228,7 +240,11 @@ func readtPT(id uint) {
 	}
 	//Data = (Y1*256 + Y2) * (unit = 0.01)
 	pt := uint32(buff[3])*0x100 + uint32(buff[4])
-	PtStr := strconv.FormatFloat(float64(pt)*0.01, 'f', 2, 64)
+	//PtStr := strconv.FormatFloat(float64(pt)*0.01, 'f', 2, 64)
+
+	jsonData := []map[string]interface{}{{"PT": int64(pt) * 100}}
+
+	sendData(urlTable["电表"], id, jsonData)
 }
 
 func readCT(id uint) {
@@ -240,7 +256,10 @@ func readCT(id uint) {
 	//Data = (Y1 * 256 + Y2) * (unit=1)
 	ct := uint32(buff[3])*0x100 + uint32(buff[4])
 	//CtStr := strconv.FormatFloat(float64(ct), 'f', 2, 64)
-	CtStr := strconv.FormatUint(uint64(ct), 10)
+	//CtStr := strconv.FormatUint(uint64(ct), 10)
+
+	jsonData := []map[string]interface{}{{"PT": int64(ct) * 10000}}
+	sendData(urlTable["电表"], id, jsonData)
 }
 
 /*

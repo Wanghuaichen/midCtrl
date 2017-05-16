@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -55,7 +56,7 @@ SHEXIANGTOU-001 = 摄像头
 func getDevType(dev string) (result string, err error) {
 	devType := strings.Split(dev, "-")[0]
 	switch devType {
-	case "TADIAO":
+	case "DIANBIAO":
 		result = "电表"
 	case "SHUIBIA":
 		result = "水表"
@@ -95,11 +96,13 @@ func initDevTypeTbale() {
 
 func relayError(id string, errType string) {
 	json := generateDataJSONStr(id, "ERROR", errType)
+	sendData(urlTable["错误"], []byte(json))
 }
 
 var urlTable = map[string]string{
-	"设备列表": "",
-	"电表":   ""}
+	"设备列表": "xxoo.6655.la/devlist",
+	"电表":   "xxoo.6655.la/dianbiao",
+	"错误":   "xxoo.6655.la/cuowu"}
 
 // GetConn 通过ID获取当前链接
 /*func getConn(id string) net.Conn {
@@ -219,14 +222,29 @@ func generateDataJSONStr(id string, action string, data string) string {
 	return str
 }
 
-type msg struct {
-}
-type msgData struct {
-	id   uint
-	data int64
+type msgTime struct {
+	time int64
 }
 
-func sendData(url string, jsonData []byte) error {
+func (msg *msgTime) getTime() {
+	msg.time = time.Now().Unix()
+}
+
+type msgData struct {
+	id   uint
+	data []map[string]interface{}
+	msgTime
+}
+
+func sendData(url string, id uint, data []map[string]interface{}) error {
+	var msg msgData
+	msg.getTime()
+	msg.id = id
+	msg.data = data
+	jsonData, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("转化发送数据%v错误：%s\n", msg, err.Error())
+	}
 	dat := bytes.NewBuffer([]byte(jsonData))
 	resp, err := http.Post(url, "application/json;charset=utf-8", dat)
 	if err != nil {

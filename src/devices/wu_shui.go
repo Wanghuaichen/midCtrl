@@ -1,8 +1,9 @@
+package devices
+
 //污水相关检测数据处理
 //经测试两种CRC校验的结果是一样的，但是按照文档给出的示例，污水处理的CRC 高低字节顺序和电表的不同
 //he default baud rate is 9600. The data format is 8 bits, no parity, 1 stop bit.
 //这个协议很不明确
-package devices
 
 func readWS(id uint) {
 	//构造要发送的数据，计算CRC
@@ -12,8 +13,12 @@ func readWS(id uint) {
 		return
 	}
 	//Data = (Y1*256 + Y2) * (unit = 0.01)
-	wuShui := buff[3:14]
+	//wuShui := buff[3:14]
+	wuShui := buff[3]
 	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
+
+	jsonData := []map[string]interface{}{{"ph": int64(wuShui) * 10}}
+	sendData( urlTable["污水"], id,jsonData)
 }
 
 /* CRC 高位字节值表 */
