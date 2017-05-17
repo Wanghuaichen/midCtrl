@@ -8,7 +8,7 @@ package devices
 func readWS(id uint) {
 	//构造要发送的数据，计算CRC
 	data := []byte{0x08, 0x03, 0x00, 0x00, 0x00, 0x06, 0x51, 0xc5}
-	buff, err := reqDevData(id, data, wuShuiAddCRC, wuShuiCheckCRC)
+	buff, err := reqDevData(id, data, wuShuiAddCRC, tableCheckCRC)
 	if err != nil {
 		return
 	}
@@ -18,7 +18,7 @@ func readWS(id uint) {
 	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
 
 	jsonData := []map[string]interface{}{{"ph": int64(wuShui) * 10}}
-	sendData( urlTable["污水"], id,jsonData)
+	sendData(urlTable["污水"], id, jsonData)
 }
 
 /* CRC 高位字节值表 */
@@ -79,7 +79,7 @@ var auchCRCLo = [...]byte{
 	0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42,
 	0x43, 0x83, 0x41, 0x81, 0x80, 0x40}
 
-func wuShuiCRC16(data []byte) (low byte, high byte) {
+func tableCRC16(data []byte) (low byte, high byte) {
 	uchCRCHi := uint8(0xFF) /* 高CRC字节初始化 */
 	uchCRCLo := uint8(0xFF) /* 低CRC 字节初始化 */
 	crcIndex := uint8(0)    /* CRC循环中的索引 */
@@ -94,9 +94,12 @@ func wuShuiCRC16(data []byte) (low byte, high byte) {
 	return
 }
 
-func wuShuiCheckCRC(data []byte) bool {
+func tableCheckCRC(data []byte) bool {
 	len := len(data)
-	l, h := wuShuiCRC16(data[:len-2])
+	if len < 2 {
+		return false
+	}
+	l, h := tableCRC16(data[:len-2])
 	if l == data[len-2] && h == data[len-1] {
 		return true
 	}
@@ -106,7 +109,7 @@ func wuShuiCheckCRC(data []byte) bool {
 // dianBiaoAddCRC 把数据后两位改为CRC校验码
 func wuShuiAddCRC(data []byte) []byte {
 	len := len(data)
-	l, h := wuShuiCRC16(data[:len-2])
+	l, h := tableCRC16(data[:len-2])
 	data[len-2] = l
 	data[len-1] = h
 	return data

@@ -39,7 +39,7 @@ func readSB(id uint) {
 	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
 	sData := []map[string]interface{}{{"ph": int64(zongLeiJi) * 1000}}
 
-	sendData(urlTable["水表"], sData)
+	sendData(urlTable["水表"], id, sData)
 }
 
 func getShuiLiang(dat []byte) int {

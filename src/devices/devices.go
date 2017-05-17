@@ -95,8 +95,8 @@ func initDevTypeTbale() {
 }
 
 func relayError(id string, errType string) {
-	json := generateDataJSONStr(id, "ERROR", errType)
-	sendData(urlTable["错误"], []byte(json))
+	//json := generateDataJSONStr(id, "ERROR", errType)
+	//sendData(urlTable["错误"], id, []byte(json))
 }
 
 var urlTable = map[string]string{
