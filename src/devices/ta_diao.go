@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
-	"net"
 	"time"
 )
 
-// TaDiaoHandleMsg 塔吊的消息处理
 /*
-
- */
+	1.? 实时数据和工作数据内容一样
+*/
 // 包头20个字节
 type packHeadType struct {
 	mark    int8
@@ -37,6 +35,16 @@ type opTimeType struct {
 func (t opTimeType) toTimestamp() int64 {
 	timestamp := time.Date(int(t.year), time.Month(t.month), int(t.day), int(t.hour), int(t.min), int(t.sec), 0, time.UTC).Unix()
 	return timestamp
+}
+func (t *opTimeType) setTime() {
+	tm := time.Now()
+	t.year = uint16(tm.Year())
+	t.month = int8(tm.Month())
+	t.day = int8(tm.Day())
+	t.week = int8(tm.Weekday())
+	t.hour = uint8(tm.Hour())
+	t.min = uint8(tm.Minute())
+	t.sec = uint8(tm.Second())
 }
 
 // 实时数据 60个字节
@@ -91,13 +99,16 @@ type runTimeDataType struct {
 	runSecond  uint32     //运行的秒数
 }
 
+func (rt runTimeDataType) toServData() []map[string]interface{} {
+	var result = make([]map[string]interface{}, 0, 2)
+	result = append(result, map[string]interface{}{"记录时间": rt.recordTime.toTimestamp()})
+	result = append(result, map[string]interface{}{"转角": int64(rt.runSecond * 10000)})
+	return result
+}
+
 type runTimeDataRecordType struct {
 	num uint32
 	rtd runTimeDataType
-}
-
-func taDiaoReply() {
-
 }
 
 var taDiaoSendDataCh = make(chan []byte, 5)
@@ -106,12 +117,19 @@ func taDiaoSend(dat []byte) {
 	taDiaoSendDataCh <- dat
 }
 
-func taDiaoWriteData(conn net.Conn) {
+func taDiaoWriteData(id uint) {
+	conn := getConn(id)
+	defer conn.Close()
+	if conn == nil {
+		return
+	}
 	for {
 		dat := <-taDiaoSendDataCh
 		_, err := conn.Write(dat)
 		if err != nil {
 			log.Printf("写数据失败: ")
+			unBindConn(id)
+			return
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
@@ -121,9 +139,20 @@ func taDiaoWriteData(conn net.Conn) {
 func replyHeardBeat(dat []byte) {
 	taDiaoSend(dat)
 }
+func taDiaoReplyMsg(pHead []byte, num uint32) {
+	buff := make([]byte, 0, 32)
+	err := binary.Write(bytes.NewBuffer(buff), binary.LittleEndian, num)
+	if err != nil {
+		log.Printf("转化数据错误：%s\n", err.Error())
+	}
+	low, high := tableCRC16(buff)
+	buff = append(buff, low, high)
+	relayDat := mergeSlice(pHead, buff)
+	taDiaoSend(relayDat)
+}
 
 // 获取实时数据
-func handleRealData(id uint, dat []byte) {
+func handleRealData(id uint, pHead []byte, dat []byte) {
 	var realData realtiemRecordType
 	if !tableCheckCRC(dat) {
 		return
@@ -134,21 +163,57 @@ func handleRealData(id uint, dat []byte) {
 		log.Printf("数据转换失败：%s\n", err.Error())
 	}
 	sendData(urlTable["塔吊"], id, realData.cdr.toServData())
+	taDiaoReplyMsg(pHead, realData.num)
 }
 
 // 处理开机时间
-// 处理校对
-func handleStartTime(id uint, dat []byte) {
-
+func handleStartTime(id uint, pHead []byte, dat []byte) {
+	var st runTimeDataRecordType
+	if !tableCheckCRC(dat) {
+		return
+	}
+	//去除CRC数据转换到数据接口变量中
+	err := binary.Read(bytes.NewReader(dat[:len(dat)-2]), binary.LittleEndian, st)
+	if err != nil {
+		log.Printf("数据转换失败：%s\n", err.Error())
+	}
+	sendData(urlTable["塔吊"], id, st.rtd.toServData())
+	taDiaoReplyMsg(pHead, st.num)
 }
 
-// 处理校对
-func handleTimeSyn(id uint) {
+// 处理时间同步
+func handleTimeSyn(pHead []byte) {
+	var tm opTimeType
+	tm.setTime()
+	buff := make([]byte, 0, 128)
+	err := binary.Write(bytes.NewBuffer(buff), binary.LittleEndian, tm)
+	if err != nil {
+		log.Printf("转化数据错误：%s\n", err.Error())
+	}
+	low, high := tableCRC16(buff)
+	buff = append(buff, low, high)
+	dat := mergeSlice(pHead, buff)
+	taDiaoSend(dat)
+}
 
+func mergeSlice(b1, b2 []byte) []byte {
+	s := make([]byte, 0, len(b1)+len(b2))
+	for _, v := range b1 {
+		s = append(s, v)
+	}
+	for _, v := range b2 {
+		s = append(s, v)
+	}
+	return s
 }
 
 // 处理塔吊上传的数据
-func taDiaoDataHandle(id uint, conn net.Conn) {
+func taDiaoDataHandle(id uint) {
+	conn := getConn(id)
+	defer conn.Close()
+	if conn == nil {
+		return
+	}
 	buf := make([]byte, 0, 1024)
 	len := 0  //buf中最后数据位置
 	sIdx := 0 //buf中开始数据位置
@@ -175,6 +240,8 @@ GO_ON_READ:
 				err := binary.Read(bytes.NewReader(packHeadData), binary.LittleEndian, packHead)
 				if err != nil {
 					log.Printf("数据转换失败：%s\n", err.Error())
+					unBindConn(id)
+					return
 				}
 			} else { //包头无效，继续找下一个数据包
 				sIdx++
@@ -187,9 +254,13 @@ GO_ON_READ:
 			case 0x0: //心跳
 				replyHeardBeat(packHeadData)
 			case 0x1: //实时数据
+				handleRealData(id, packHeadData, buf[int(sIndex)+20:int(sIndex)+20+int(packHead.len)])
 			case 0x2: //工作工作数据
+				handleRealData(id, packHeadData, buf[int(sIndex)+20:int(sIndex)+20+int(packHead.len)])
 			case 0x3: //开机运行记录
+				handleStartTime(id, packHeadData, buf[int(sIndex)+20:int(sIndex)+20+int(packHead.len)])
 			case 0x4: //时间校对
+				handleTimeSyn(packHeadData)
 			case 0xA: //读取设置心跳包周期（服务器主动）
 			case 0xB: //读取设置实时数据周期（服务器主动）
 			case 0x14: //获取结构参数（服务器主动）
@@ -207,4 +278,9 @@ GO_ON_READ:
 		}
 	}
 
+}
+
+func taDiaoStart(id uint) {
+	go taDiaoDataHandle(id)
+	go taDiaoWriteData(id)
 }

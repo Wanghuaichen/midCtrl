@@ -23,3 +23,4 @@
 2017/05/14 22:47:11 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
 2017/05/14 22:47:21 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
 2017/05/14 22:47:41 dian_biao.go:145: 写入设备数据失败： write tcp 127.0.0.1:51001->127.0.0.1:14094: wsasend: An existing connection was forcibly closed by the remote host.
+2017/05/17 21:48:54 devices.go:145: 获取设备列表错误：Get xxoo.6655.la/devlist: unsupported protocol scheme ""

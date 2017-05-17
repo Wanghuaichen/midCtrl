@@ -23,9 +23,9 @@ const (
 
 //Device 设备
 type Device struct {
-	hardwareID uint
-	port       uint
-	//hardwareCode string
+	hardwareID   uint
+	port         uint
+	hardwareCode string
 	//devType      string
 	conn  net.Conn
 	state uint
@@ -172,7 +172,7 @@ func reqDevList(url string) error {
 		//列表中不存在则加入列表
 		if _, ok := devList[dev.hardwareID]; !ok {
 			dev.port = v.port
-			//dev.hardwareCode = v.hardwareCode
+			dev.hardwareCode = v.hardwareCode
 			dev.hardwareID = v.hardwareID
 			dev.conn = nil
 			dev.state = offline
@@ -213,6 +213,10 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		}
 		fmt.Printf("建立连接成功:%d\n", hardwareID)
 		bindConn(hardwareID, conn)
+		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
+		if "塔吊" == devTypeStr {
+			taDiaoStart(hardwareID)
+		}
 	}
 }
 
