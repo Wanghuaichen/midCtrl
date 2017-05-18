@@ -1,4 +1,4 @@
 src/github.com/*
-pkg/
-bin/
+pkg/*
+bin/*
 src/sourcegraph.com/*

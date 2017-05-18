@@ -3,7 +3,7 @@
 package devices
 
 import (
-	"bytes"
+	"comm"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -127,53 +126,81 @@ func unBindConn(id uint) {
 
 func reqDevList(url string) error {
 	//sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
+	fmt.Printf("reqDevList start\n")
 	type jsonDev struct {
-		area         string
-		hardwareCode string
-		hardwareID   uint
-		name         string
-		port         uint
+		Area         string `json:"area"`
+		HardwareCode string `json:"hardwareCode"`
+		HardwareID   uint   `json:"hardwareId"`
+		Name         string `json:"name"`
+		Port         uint   `json:"port"`
 	}
 	type jsonDevList struct {
-		code   int
-		data   []jsonDev
-		errMsg string
+		Code   int       `json:"code"`
+		Data   []jsonDev `json:"data"`
+		ErrMsg string    `json:"errMsg"`
 	}
 	var reqDevListData jsonDevList
-	resp, err := http.Get(url)
+	//http://39.108.5.184/smart/api/getHardwareList?projectId=1
+
+	/*client := &http.Client{
+		Transport: &http.Transport{
+			Dial: func(netw, addr string) (net.Conn, error) {
+				conn, err := net.DialTimeout(netw, addr, time.Second*2)
+				if err != nil {
+					return nil, err
+				}
+				conn.SetDeadline(time.Now().Add(time.Second * 2))
+				return conn, nil
+			},
+			ResponseHeaderTimeout: time.Second * 2,
+		},
+	}*/
+	fmt.Printf("reqDevList HTTP GET\n")
+	//resp, err := client.Get("http://39.108.5.184/smart/api/getHardwareList?projectId=1")
+	resp, err := http.Get("http://39.108.5.184/smart/api/getHardwareList?projectId=1")
 	if err != nil {
 		log.Printf("获取设备列表错误：%s\n", err.Error())
 		return err
 	}
-	var content []byte
+	//var content []byte
 	defer resp.Body.Close()
-	content, err = ioutil.ReadAll(resp.Body)
+	fmt.Printf("reqDevList ReadAll\n")
+	/*err = json.NewDecoder(resp.Body).Decode(&reqDevListData)
+	if err != nil {
+		log.Printf("解析设备列表json数据失败：%s\n", err.Error())
+		return err
+	}*/
+
+	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("获取设备列表内容读取失败：%s\n", err.Error())
 		return err
 	}
+	fmt.Printf("获取设备列表内容:\n%v\n%s\n", content, string(content))
 	err = json.Unmarshal(content, &reqDevListData)
 	if err != nil {
 		log.Printf("解析设备列表json数据失败：%s\n", err.Error())
 		return err
 	}
-	if reqDevListData.code != 200 {
+
+	fmt.Println(reqDevListData)
+	if reqDevListData.Code != 200 {
 		log.Printf("服务器错误\n")
 		err := errors.New("服务器错误")
 		return err
 	}
-	for _, v := range reqDevListData.data {
+	for _, v := range reqDevListData.Data {
 		var dev = new(Device)
-		devTypeStr, err := getDevType(v.hardwareCode)
+		devTypeStr, err := getDevType(v.HardwareCode)
 		if err != nil {
-			log.Printf("%s不存在的类型\n", v.hardwareCode)
+			log.Printf("%s不存在的类型\n", v.HardwareCode)
 			continue
 		}
 		//列表中不存在则加入列表
 		if _, ok := devList[dev.hardwareID]; !ok {
-			dev.port = v.port
-			dev.hardwareCode = v.hardwareCode
-			dev.hardwareID = v.hardwareID
+			dev.port = v.Port
+			dev.hardwareCode = v.HardwareCode
+			dev.hardwareID = v.HardwareID
 			dev.conn = nil
 			dev.state = offline
 			devList[dev.hardwareID] = dev
@@ -186,6 +213,7 @@ func reqDevList(url string) error {
 				log.Printf("监听失败:%s,%s\n", "localhost:"+port, err.Error())
 				continue
 			}
+			fmt.Printf("监听 【%s】成功\n", port)
 			if listen == nil {
 				log.Println("listen == nil")
 				continue
@@ -226,43 +254,12 @@ func generateDataJSONStr(id string, action string, data string) string {
 	return str
 }
 
-type msgTime struct {
-	time int64
-}
-
-func (msg *msgTime) getTime() {
-	msg.time = time.Now().Unix()
-}
-
-type msgData struct {
-	id   uint
-	data []map[string]interface{}
-	msgTime
-}
-
-func sendData(url string, id uint, data []map[string]interface{}) error {
-	var msg msgData
-	msg.getTime()
-	msg.id = id
-	msg.data = data
-	jsonData, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("转化发送数据%v错误：%s\n", msg, err.Error())
-	}
-	dat := bytes.NewBuffer([]byte(jsonData))
-	resp, err := http.Post(url, "application/json;charset=utf-8", dat)
-	if err != nil {
-		log.Printf("发送数据失败：%s\n", err.Error())
-		return err
-	}
-	defer resp.Body.Close()
-	result, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("读取返回数据失败：%s\n", err.Error())
-		return err
-	}
-	fmt.Printf("%s", result)
-	return nil
+func sendData(url string, id uint, data []map[string]interface{}) {
+	var msg comm.MsgData
+	msg.SetTime()
+	msg.HdID = id
+	msg.Data = data
+	comm.SendMsg(msg)
 }
 
 // IntiDevice 初始化设备连接

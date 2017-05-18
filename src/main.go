@@ -5,6 +5,7 @@ import (
 	"devices"
 	"log"
 	"os"
+	"serv"
 )
 
 // serviceConn 和主服务器的连接
@@ -29,7 +30,6 @@ func InitLoger() error {
 func Init() {
 	config.InitConfig()
 	InitLoger()
-	//serv.InitServ()
 	devices.IntiDevice()
 }
 
@@ -42,6 +42,7 @@ func Init() {
 }*/
 func main() {
 	Init()
+	go serv.StartMsgToServer()
 	// 转发服务器的消息到设备侧处理
 	//go transServMsg()
 
