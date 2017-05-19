@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -68,24 +69,23 @@ type craneDataRecordType struct {
 }
 
 // 将数据转为发送给服务器的形式
-func (cdr craneDataRecordType) toServData() []map[string]interface{} {
-	var result = make([]map[string]interface{}, 0, 16)
-	result = append(result, map[string]interface{}{"记录时间": cdr.recordTime.toTimestamp()})
-	result = append(result, map[string]interface{}{"转角": int64(cdr.angle * 10000)})
-	result = append(result, map[string]interface{}{"幅度": int64(cdr.radius * 10000)})
-	result = append(result, map[string]interface{}{"高度": int64(cdr.height * 10000)})
-	result = append(result, map[string]interface{}{"吊重": int64(cdr.load * 10000)})
-	result = append(result, map[string]interface{}{"安全吊重": int64(cdr.safeload * 10000)})
-	result = append(result, map[string]interface{}{"力矩百分比": int64(cdr.percent * 10000)})
-	result = append(result, map[string]interface{}{"风速": int64(cdr.windspeed * 10000)})
-	result = append(result, map[string]interface{}{"塔机倾角": int64(cdr.obliquity * 10000)})
-	result = append(result, map[string]interface{}{"倾角方向": int64(cdr.dirAngle * 10000)})
-	result = append(result, map[string]interface{}{"吊绳倍率": int64(cdr.fall * 10000)})
-	result = append(result, map[string]interface{}{"控制码": int64(cdr.outControl * 10000)})
-	result = append(result, map[string]interface{}{"预警码": int64(cdr.earlyAlarm * 10000)})
-	result = append(result, map[string]interface{}{"报警码": int64(cdr.alarm * 10000)})
-	result = append(result, map[string]interface{}{"违章码": int64(cdr.peccancy * 10000)})
-	result = append(result, map[string]interface{}{"违章码": int64(cdr.sensorAlarm * 10000)})
+func (cdr craneDataRecordType) toServData() map[string][]string {
+	var result = make(map[string][]string, 17)
+	result["angle"] = []string{strconv.FormatInt(int64(cdr.angle*10000), 10)}
+	result["radius"] = []string{strconv.FormatInt(int64(cdr.radius*10000), 10)}
+	result["height"] = []string{strconv.FormatInt(int64(cdr.height*10000), 10)}
+	result["load"] = []string{strconv.FormatInt(int64(cdr.load*10000), 10)}
+	result["safeload"] = []string{strconv.FormatInt(int64(cdr.safeload*10000), 10)}
+	result["percent"] = []string{strconv.FormatInt(int64(cdr.percent*10000), 10)}
+	result["windspeed"] = []string{strconv.FormatInt(int64(cdr.windspeed*10000), 10)}
+	result["obliquity"] = []string{strconv.FormatInt(int64(cdr.obliquity*10000), 10)}
+	result["dirAngle"] = []string{strconv.FormatInt(int64(cdr.dirAngle*10000), 10)}
+	result["fall"] = []string{strconv.FormatInt(int64(cdr.fall*10000), 10)}
+	result["outControl"] = []string{strconv.FormatInt(int64(cdr.outControl*10000), 10)}
+	result["earlyAlarm"] = []string{strconv.FormatInt(int64(cdr.earlyAlarm*10000), 10)}
+	result["alarm"] = []string{strconv.FormatInt(int64(cdr.alarm*10000), 10)}
+	result["peccancy"] = []string{strconv.FormatInt(int64(cdr.peccancy*10000), 10)}
+	result["sensorAlarm"] = []string{strconv.FormatInt(int64(cdr.sensorAlarm*10000), 10)}
 	return result
 }
 
@@ -99,10 +99,9 @@ type runTimeDataType struct {
 	runSecond  uint32     //运行的秒数
 }
 
-func (rt runTimeDataType) toServData() []map[string]interface{} {
-	var result = make([]map[string]interface{}, 0, 2)
-	result = append(result, map[string]interface{}{"记录时间": rt.recordTime.toTimestamp()})
-	result = append(result, map[string]interface{}{"转角": int64(rt.runSecond * 10000)})
+func (rt runTimeDataType) toServData() map[string][]string {
+	var result = make(map[string][]string, 3)
+	result["runSecond"] = []string{strconv.FormatInt(int64(rt.runSecond*10000), 10)}
 	return result
 }
 
@@ -162,7 +161,7 @@ func handleRealData(id uint, pHead []byte, dat []byte) {
 	if err != nil {
 		log.Printf("数据转换失败：%s\n", err.Error())
 	}
-	sendData(urlTable["塔吊"], id, realData.cdr.toServData())
+	sendData("塔吊", id, realData.cdr.toServData())
 	taDiaoReplyMsg(pHead, realData.num)
 }
 
@@ -177,7 +176,7 @@ func handleStartTime(id uint, pHead []byte, dat []byte) {
 	if err != nil {
 		log.Printf("数据转换失败：%s\n", err.Error())
 	}
-	sendData(urlTable["塔吊"], id, st.rtd.toServData())
+	sendData("塔吊", id, st.rtd.toServData())
 	taDiaoReplyMsg(pHead, st.num)
 }
 

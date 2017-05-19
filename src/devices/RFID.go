@@ -15,6 +15,30 @@ FrameHeader  ID       Length    Command Code       Data     CheckXOR
 
 package devices
 
+import "log"
+
+//等待rfid上报数据
+func rfidDataHandle(id uint) {
+	conn := getConn(id)
+	defer conn.Close()
+	if conn == nil {
+		return
+	}
+	buf := make([]byte, 0, 1024)
+	len := 0 //buf中最后数据位置
+	//sIdx := 0 //buf中开始数据位置
+GO_ON_READ:
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Printf("读数据错误：%s\n", err.Error())
+			continue GO_ON_READ
+		}
+		len = len + n
+
+	}
+}
+
 func xorVerify(dat []byte) byte {
 	xor := byte(0x0)
 	for _, v := range dat {

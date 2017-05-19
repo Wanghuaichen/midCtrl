@@ -28,4 +28,7 @@ func main() {
 	}
 	fmt.Println(dat)
 
+	jsonMap := map[string]interface{}{"xxx": 24, "ppp": "fd"}
+	datj, _ := json.Marshal(jsonMap)
+	fmt.Printf("%s\n", string(datj))
 }

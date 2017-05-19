@@ -3,13 +3,18 @@
 package serv
 
 import (
-	"bytes"
 	"comm"
-	"encoding/json"
+	"devices"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"strconv"
+
+	"net/url"
+
+	sjson "github.com/bitly/go-simplejson"
 )
 
 // serviceConn 和主服务器的连接
@@ -24,27 +29,49 @@ import (
 func StartMsgToServer() {
 	for {
 		msg := comm.GetMsg()
-		jsonData, err := json.Marshal(msg)
-		if err != nil {
-			log.Printf("转化发送数据%v错误：%s\n", msg, err.Error())
+		url := devices.GetURL(msg.URLStr)
+		if url == "" {
+			log.Printf("获取url失败：%d\n", msg.HdID)
+			continue
 		}
-		dat := bytes.NewBuffer(jsonData)
-		for {
-			fmt.Printf("发送:%s\n", dat.String())
-			resp, err := http.Post("http://39.108.5.184/smart/api/saveElectricityData", "application/json;charset=utf-8", dat)
-			if err != nil {
-				log.Printf("发送数据失败：%s\n", err.Error())
-				resp.Body.Close()
-				continue
-			}
+		dat := msg.Data
+		hdID := strconv.FormatInt(int64(msg.HdID), 10)
+		dat["hdId"] = []string{hdID}
+		dat["time"] = []string{msg.Time}
+		reqServ(url, dat)
+	}
 
-			result, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Printf("读取返回数据失败：%s\n", err.Error())
-			}
-			fmt.Printf("%s", result)
+}
+
+func reqServ(url string, dat url.Values) {
+	for {
+		fmt.Printf("发送:%v\n", dat)
+		resp, err := http.PostForm(url, dat)
+		if err != nil {
+			log.Printf("发送数据失败：%s\n", err.Error())
 			resp.Body.Close()
-			break
+			continue
 		}
+
+		result, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("读取返回数据失败：%s\n", err.Error())
+		}
+		defer resp.Body.Close()
+		//fmt.Printf("%s", result)
+		jsDat, err := sjson.NewJson(result)
+		if err != nil {
+			log.Printf("返回数据非json：%s\n", err.Error())
+		}
+		//sjson.NewFromReader(resp.Body)
+		code, err := jsDat.Get("code").Int()
+		if err != nil {
+			str, _ := jsDat.String()
+			log.Printf("服务器返回值错误：%s\n", str)
+		} else if 200 != code {
+			log.Printf("服务器错误：%d\n", code)
+			continue
+		}
+		break
 	}
 }

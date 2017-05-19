@@ -11,13 +11,16 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	offline = uint(0)
-	online  = uint(1)
+	online  = uint(0)
+	offline = uint(1)
+	noData  = uint(2)
 )
 
 //Device 设备
@@ -27,7 +30,8 @@ type Device struct {
 	hardwareCode string
 	//devType      string
 	conn  net.Conn
-	state uint
+	state uint //当前状态 0 正常  1 网络断开 2 设备不能返回数据
+	isOk  uint //命令执行结果
 }
 
 // DevType 设备类型
@@ -39,6 +43,8 @@ type DevType struct {
 var devList = make(map[uint]*Device, 100) //设备列表
 
 var devTypeTable = make(map[string][]uint, 10) //设备列表的类型索引，值为该类型的所有设备
+var reqDevListTicker = time.NewTicker(time.Minute * 2)
+var reportStatusTicker = time.NewTicker(time.Second * 10)
 
 /*
 TADIAO-001= 塔吊
@@ -57,14 +63,14 @@ func getDevType(dev string) (result string, err error) {
 	switch devType {
 	case "DIANBIAO":
 		result = "电表"
-	case "SHUIBIA":
+	case "SHUIBIAO":
 		result = "水表"
 	case "TADIAO":
 		result = "塔吊"
 	case "WUSHUI":
 		result = "污水"
-	case "YANGCHEN":
-		result = "扬尘"
+	case "ENV":
+		result = "环境"
 	case "ZAOYIN":
 		result = "噪音"
 	case "RFID":
@@ -85,8 +91,7 @@ func initDevTypeTbale() {
 	devTypeTable["水表"] = make([]uint, 0, 5)
 	devTypeTable["塔吊"] = make([]uint, 0, 5)
 	devTypeTable["污水"] = make([]uint, 0, 5)
-	devTypeTable["扬尘"] = make([]uint, 0, 5)
-	devTypeTable["噪音"] = make([]uint, 0, 5)
+	devTypeTable["环境"] = make([]uint, 0, 5)
 	devTypeTable["RFID"] = make([]uint, 0, 5)
 	devTypeTable["电梯"] = make([]uint, 0, 5)
 	devTypeTable["地磅"] = make([]uint, 0, 5)
@@ -99,9 +104,22 @@ func relayError(id string, errType string) {
 }
 
 var urlTable = map[string]string{
-	"设备列表": "xxoo.6655.la/devlist",
-	"电表":   "xxoo.6655.la/dianbiao",
-	"错误":   "xxoo.6655.la/cuowu"}
+	"电表":   "http://39.108.5.184/smart/api/saveElectricityData",
+	"水表":   "http://39.108.5.184/smart/api/saveWaterData",
+	"塔吊":   "http://39.108.5.184/smart/api/saveCraneData",
+	"污水":   "http://39.108.5.184/smart-api/api/checkIn",
+	"环境":   "http://39.108.5.184/smart/api/saveEnvData",
+	"RFID": "http://39.108.5.184/smart/api/checkIn",
+	"电梯":   "http://39.108.5.184/smart/api/saveElevatorData",
+	"地磅":   "",
+	"摄像头":  "",
+	"设备列表": "http://39.108.5.184/smart/api/getHardwareList?projectId=1",
+	"设备状态": "http://39.108.5.184/smart/api/reportState"}
+
+// GetURL 获取要发消息的url
+func GetURL(urlStr string) (url string) {
+	return urlTable[urlStr]
+}
 
 // GetConn 通过ID获取当前链接
 /*func getConn(id string) net.Conn {
@@ -109,16 +127,27 @@ var urlTable = map[string]string{
 	return devConnTable[id]
 }
 */
-// BindConn 绑定连接到具体设备
+// BindConn 绑定连接到具体设备 并设定状态为上线
 func bindConn(id uint, conn net.Conn) {
 	devList[id].conn = conn
 	devList[id].state = online
 }
 
-// UnBindConn 解除设备的连接绑定
+// UnBindConn 解除设备的连接绑定 并设定状态为断开
 func unBindConn(id uint) {
 	devList[id].conn = nil
 	devList[id].state = offline
+}
+
+func setStateNoData(id uint) {
+	if devList[id].state == online {
+		devList[id].state = noData
+	}
+}
+func setStateOk(id uint) {
+	if devList[id].state == noData {
+		devList[id].state = online
+	}
 }
 
 // reqDevList 向服务器请求设备列表
@@ -126,7 +155,7 @@ func unBindConn(id uint) {
 
 func reqDevList(url string) error {
 	//sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
-	fmt.Printf("reqDevList start\n")
+	//fmt.Printf("reqDevList start\n")
 	type jsonDev struct {
 		Area         string `json:"area"`
 		HardwareCode string `json:"hardwareCode"`
@@ -156,27 +185,18 @@ func reqDevList(url string) error {
 		},
 	}*/
 	fmt.Printf("reqDevList HTTP GET\n")
-	//resp, err := client.Get("http://39.108.5.184/smart/api/getHardwareList?projectId=1")
-	resp, err := http.Get("http://39.108.5.184/smart/api/getHardwareList?projectId=1")
+	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("获取设备列表错误：%s\n", err.Error())
 		return err
 	}
-	//var content []byte
 	defer resp.Body.Close()
-	fmt.Printf("reqDevList ReadAll\n")
-	/*err = json.NewDecoder(resp.Body).Decode(&reqDevListData)
-	if err != nil {
-		log.Printf("解析设备列表json数据失败：%s\n", err.Error())
-		return err
-	}*/
-
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("获取设备列表内容读取失败：%s\n", err.Error())
 		return err
 	}
-	fmt.Printf("获取设备列表内容:\n%v\n%s\n", content, string(content))
+	fmt.Printf("获取设备列表内容:n%s\n", string(content))
 	err = json.Unmarshal(content, &reqDevListData)
 	if err != nil {
 		log.Printf("解析设备列表json数据失败：%s\n", err.Error())
@@ -197,12 +217,13 @@ func reqDevList(url string) error {
 			continue
 		}
 		//列表中不存在则加入列表
-		if _, ok := devList[dev.hardwareID]; !ok {
+		if _, ok := devList[v.HardwareID]; !ok {
 			dev.port = v.Port
 			dev.hardwareCode = v.HardwareCode
 			dev.hardwareID = v.HardwareID
 			dev.conn = nil
 			dev.state = offline
+			dev.isOk = 1
 			devList[dev.hardwareID] = dev
 			devTypeTable[devTypeStr] = append(devTypeTable[devTypeStr], dev.hardwareID)
 
@@ -211,13 +232,14 @@ func reqDevList(url string) error {
 			listen, err := net.Listen("tcp", "localhost:"+port)
 			if err != nil {
 				log.Printf("监听失败:%s,%s\n", "localhost:"+port, err.Error())
+				listen.Close()
 				continue
 			}
-			fmt.Printf("监听 【%s】成功\n", port)
 			if listen == nil {
 				log.Println("listen == nil")
 				continue
 			}
+			fmt.Printf("监听 【%s】成功\n", port)
 			go devAcceptConn(listen, dev.hardwareID)
 		}
 	}
@@ -237,6 +259,7 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		conn, err := l.Accept()
 		if err != nil {
 			log.Printf("监听建立连接错误:%s\n", err.Error())
+			l.Close()
 			continue
 		}
 		fmt.Printf("建立连接成功:%d\n", hardwareID)
@@ -254,18 +277,42 @@ func generateDataJSONStr(id string, action string, data string) string {
 	return str
 }
 
-func sendData(url string, id uint, data []map[string]interface{}) {
+func reportDevStatus() {
+	for _, dev := range devList {
+		devState := make(url.Values, 4)
+		devState["isOk"] = []string{strconv.FormatInt(int64(dev.isOk), 10)}
+		devState["state"] = []string{strconv.FormatInt(int64(dev.state), 10)}
+		sendData("设备状态", dev.hardwareID, devState)
+	}
+}
+func sendData(urlStr string, id uint, data url.Values) {
 	var msg comm.MsgData
 	msg.SetTime()
 	msg.HdID = id
 	msg.Data = data
+	msg.URLStr = urlStr
 	comm.SendMsg(msg)
 }
 
 // IntiDevice 初始化设备连接
 func IntiDevice() error {
 	initDevTypeTbale()
-	reqDevList(urlTable["设备列表"])
-	dianBiaoIntAutoGet()
+	//定时请求设备列表
+	go func() {
+		reqDevList(urlTable["设备列表"])
+		for _ = range reqDevListTicker.C {
+			reqDevList(urlTable["设备列表"])
+		}
+	}()
+	//定时上报状态
+	go func() {
+		for _ = range reportStatusTicker.C {
+			reportDevStatus()
+		}
+	}()
+	//塔吊是主动上报 只能被动接收 在创建连接的时候就建立读协程等待数据
+	dianBiaoIntAutoGet() //启动电表数据获取
+	shuiBiaoAutoGet()    //启动水表数据获取
+	wuShuiAutoGet()      //启动污水数据获取
 	return nil
 }

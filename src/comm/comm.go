@@ -1,13 +1,18 @@
 package comm
 
-import "time"
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"net/url"
+	"strconv"
+	"time"
+)
 
 // MsgData 发个服务器的数据消息类型
 type MsgData struct {
-	HdID uint                     `json:"hdId"`
-	Data []map[string]interface{} `json:"data"`
-	Time int64                    `json:"time"`
+	HdID   uint       `json:"hdId"`
+	Data   url.Values `json:"data"`
+	Time   string     `json:"time"`
+	URLStr string     //在url表中查找具体的URL
 }
 
 const (
@@ -19,7 +24,7 @@ const (
 
 // SetTime 给消息添加上当前的时间
 func (msg *MsgData) SetTime() {
-	msg.Time = time.Now().Unix()
+	msg.Time = strconv.FormatInt(time.Now().Unix(), 10)
 }
 
 var msgQ = make(chan MsgData, 10000)

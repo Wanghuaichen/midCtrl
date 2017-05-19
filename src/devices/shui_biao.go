@@ -24,23 +24,33 @@ package devices
 
 import (
 	"math"
+	"strconv"
+	"time"
 )
 
-// 读水表数据
-func readSB(id uint) {
-	//构造要发送的数据，计算CRC
-	data := []byte{0xFE, 0xFE, 0xFE, 0xFE, 0x68, 0x10, 0x44, 0x33, 0x22, 0x11, 0x00, 0x33, 0x78, 0x01, 0x03, 0x1F, 0x90, 0x00, 0x80, 0x16}
-	buff, err := reqDevData(id, data, nil, nil)
-	if err != nil {
-		return
-	}
-	//Data = (Y1*256 + Y2) * (unit = 0.01)
-	//wuShui := buff[3:14]
-	zongLeiJi := getShuiLiang(buff[18:22])
-	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
-	sData := []map[string]interface{}{{"ph": int64(zongLeiJi) * 1000}}
+var shuiBiaoPeriod = 10 * time.Second
 
-	sendData(urlTable["水表"], id, sData)
+func shuiBiaoAutoGet() {
+	go readSB()
+}
+
+// 读水表数据
+func readSB() {
+	for {
+		for _, id := range devTypeTable["水表"] {
+			//构造要发送的数据
+			data := []byte{0xFE, 0xFE, 0xFE, 0xFE, 0x68, 0x10, 0x44, 0x33, 0x22, 0x11, 0x00, 0x33, 0x78, 0x01, 0x03, 0x1F, 0x90, 0x00, 0x80, 0x16}
+			buff, err := reqDevData(id, data, nil, nil)
+			if err != nil {
+				return
+			}
+			zongLeiJi := getShuiLiang(buff[18:22])
+			yueLeiJi := getShuiLiang(buff[23:27])
+			sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {strconv.FormatInt(int64(yueLeiJi)*1000, 10)}}
+			sendData("水表", id, sData)
+		}
+		time.Sleep(shuiBiaoPeriod)
+	}
 }
 
 func getShuiLiang(dat []byte) int {

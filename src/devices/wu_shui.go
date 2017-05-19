@@ -1,24 +1,59 @@
 package devices
 
+import (
+	"log"
+	"strconv"
+	"time"
+)
+
 //污水相关检测数据处理
-//经测试两种CRC校验的结果是一样的，但是按照文档给出的示例，污水处理的CRC 高低字节顺序和电表的不同
 //he default baud rate is 9600. The data format is 8 bits, no parity, 1 stop bit.
 //这个协议很不明确
+//使用ascii 校验码怎么产生？ LRC校验？    共17个字节
+//使用RTU  ph四位精度0.001  温度只有一位没有小数精度？  共11字节
+var wuShuiPeriod = 10 * time.Second
 
-func readWS(id uint) {
-	//构造要发送的数据，计算CRC
-	data := []byte{0x08, 0x03, 0x00, 0x00, 0x00, 0x06, 0x51, 0xc5}
-	buff, err := reqDevData(id, data, wuShuiAddCRC, tableCheckCRC)
-	if err != nil {
-		return
+func wuShuiAutoGet() {
+	go readWS()
+}
+
+func readWS() {
+	for {
+		for _, id := range devTypeTable["污水"] {
+			//构造要发送的数据，计算CRC
+			data := []byte{0x08, 0x03, 0x00, 0x00, 0x00, 0x06, 0x51, 0xc5}
+			buff, err := reqDevData(id, data, wuShuiAddCRC, tableCheckCRC)
+			if err != nil {
+				return
+			}
+			//第三个字节为0xB 是ASCII模式，0x6是数据 RTU 模式
+			var temperature int
+			var ph int
+			var alarm int
+			switch buff[2] {
+			case 0xB:
+				t, _ := strconv.ParseFloat(string(buff[3:9]), 10)
+				ph = int(t * 10000.0)
+				t, _ = strconv.ParseFloat(string(buff[10:14]), 10)
+				temperature = int(t * 10000.0)
+				alarm = int(buff[14])
+			case 0x6:
+				ph = int((int(buff[3])*0x1000000 + int(buff[4])*0x10000 + int(buff[5])*0x100 + int(buff[6])) * 10)
+				temperature = int(buff[7])
+				alarm = int(buff[8])
+			default:
+				log.Printf("数据错误\n")
+			}
+			//Data = (Y1*256 + Y2) * (unit = 0.01)
+			//wuShui := buff[3:14]
+			//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
+
+			jsonData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperatureph": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {strconv.FormatInt(int64(alarm), 10)}}
+			sendData("污水", id, jsonData)
+		}
+		time.Sleep(wuShuiPeriod)
 	}
-	//Data = (Y1*256 + Y2) * (unit = 0.01)
-	//wuShui := buff[3:14]
-	wuShui := buff[3]
-	//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
 
-	jsonData := []map[string]interface{}{{"ph": int64(wuShui) * 10}}
-	sendData(urlTable["污水"], id, jsonData)
 }
 
 /* CRC 高位字节值表 */
@@ -113,4 +148,26 @@ func wuShuiAddCRC(data []byte) []byte {
 	data[len-2] = l
 	data[len-1] = h
 	return data
+}
+
+// LRC 校验
+/*
+Uint8 dsp_lrc_check(Uint8 buf[], Uint16 len)
+{
+ Uint16 iCount  = 0;
+ Uint8 lrcValue = 0x00;
+
+ for(iCount = 0; iCount < len ; iCount ++) {
+
+   lrcValue = lrcValue + buf[iCount];
+
+  }
+
+// return ((unsigned char)((~lrcValue) + 1));      //两种操作都能实现
+ return ((unsigned char)(-((char)lrcValue)));
+
+}
+*/
+func modbusLRC(data []byte) (low, high byte) {
+	return 0, 0
 }
