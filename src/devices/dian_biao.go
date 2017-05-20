@@ -47,8 +47,9 @@ const (
 var readFormt = make([]byte, 0, 20)
 
 //string 行为，int间隔秒数
-var dianBiaoPeriod = 10 * time.Second
-var dianBiaoSync = make(chan bool, 1)
+var dianBiaoPeriod = 30 * time.Second
+
+//var dianBiaoSync = make(chan bool, 1)
 
 // 初始化按自动间隔获取数据
 func dianBiaoIntAutoGet() {
@@ -274,7 +275,7 @@ func crc16Modbus(data []byte) (low byte, high byte) {
 	return low, high
 }
 
-func dianBiaoCheckCRC(data []byte) bool {
+func checkModbusCRC16(data []byte) bool {
 	len := len(data)
 	l, h := crc16Modbus(data[:len-2])
 	if l == data[len-2] && h == data[len-1] {
@@ -284,7 +285,7 @@ func dianBiaoCheckCRC(data []byte) bool {
 }
 
 // dianBiaoAddCRC 把数据后两位改为CRC校验码
-func dianBiaoAddCRC(data []byte) []byte {
+func addModebusCRC16(data []byte) []byte {
 	len := len(data)
 	l, h := crc16Modbus(data[:len-2])
 	data[len-2] = l

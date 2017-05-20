@@ -35,6 +35,9 @@ func StartMsgToServer() {
 			continue
 		}
 		dat := msg.Data
+		if dat == nil {
+			continue
+		}
 		hdID := strconv.FormatInt(int64(msg.HdID), 10)
 		dat["hdId"] = []string{hdID}
 		dat["time"] = []string{msg.Time}
@@ -58,19 +61,21 @@ func reqServ(url string, dat url.Values) {
 			log.Printf("读取返回数据失败：%s\n", err.Error())
 		}
 		defer resp.Body.Close()
-		//fmt.Printf("%s", result)
+		fmt.Printf("%s", result)
 		jsDat, err := sjson.NewJson(result)
 		if err != nil {
-			log.Printf("返回数据非json：%s\n", err.Error())
+			log.Printf("返回数据非json：%s %s\n", err.Error(), result)
+			return
 		}
 		//sjson.NewFromReader(resp.Body)
 		code, err := jsDat.Get("code").Int()
 		if err != nil {
 			str, _ := jsDat.String()
-			log.Printf("服务器返回值错误：%s\n", str)
+			log.Printf("服务器返回值错误：%s %s\n", string(result), str)
+			return
 		} else if 200 != code {
-			log.Printf("服务器错误：%d\n", code)
-			continue
+			log.Printf("服务器错误：%s %d\n", string(result), code)
+			return
 		}
 		break
 	}
