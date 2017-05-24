@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"log"
 	"strconv"
 	"time"
 )
@@ -16,6 +17,7 @@ var wuShuiPeriod = 20 * time.Second
 
 func wuShuiAutoGet() {
 	go readWS()
+	log.Println("污水开始获取数据")
 }
 
 func readWS() {

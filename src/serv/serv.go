@@ -52,13 +52,14 @@ func reqServ(url string, dat url.Values) {
 		resp, err := http.PostForm(url, dat)
 		if err != nil {
 			log.Printf("发送数据失败：%s\n", err.Error())
-			resp.Body.Close()
+			//resp.Body.Close()
 			continue
 		}
 
 		result, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("读取返回数据失败：%s\n", err.Error())
+			continue
 		}
 		defer resp.Body.Close()
 		fmt.Printf("%s", result)

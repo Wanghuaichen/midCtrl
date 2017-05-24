@@ -84,3 +84,17 @@ func TestSum(t *testing.T) {
 		t.Fatal(s)
 	}
 }
+
+func TestXOR(t *testing.T) {
+	s := []byte{0x00, 0x0D, 0x60, 0xE2, 0x00, 0x00, 0x15, 0x24, 0x19, 0x01, 0x12, 0x14, 0x80, 0x82, 0xC3}
+	cx := xorVerify(s)
+	if cx != 0xF9 {
+		t.Log("cx=", cx)
+		t.Fail()
+	}
+	cs := sum(s)
+	if cs != 0xF9 {
+		t.Log("cs=", cs)
+		t.Fail()
+	}
+}

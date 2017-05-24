@@ -44,7 +44,7 @@ var devList = make(map[uint]*Device, 100) //设备列表
 
 var devTypeTable = make(map[string][]uint, 10) //设备列表的类型索引，值为该类型的所有设备
 var reqDevListTicker = time.NewTicker(time.Minute * 2)
-var reportStatusTicker = time.NewTicker(time.Second * 10)
+var reportStatusTicker = time.NewTicker(time.Second * 300)
 
 /*
 TADIAO-001= 塔吊
@@ -111,7 +111,7 @@ var urlTable = map[string]string{
 	"环境":   "http://39.108.5.184/smart/api/saveEnvData",
 	"RFID": "http://39.108.5.184/smart/api/checkIn",
 	"电梯":   "http://39.108.5.184/smart/api/saveElevatorData",
-	"地磅":   "",
+	"地磅":   "http://39.108.5.184/smart/api/saveWeighbridgeData",
 	"摄像头":  "",
 	"设备列表": "http://39.108.5.184/smart/api/getHardwareList?projectId=1",
 	"设备状态": "http://39.108.5.184/smart/api/reportState"}
@@ -184,7 +184,7 @@ func reqDevList(url string) error {
 			ResponseHeaderTimeout: time.Second * 2,
 		},
 	}*/
-	fmt.Printf("reqDevList HTTP GET\n")
+	//fmt.Printf("reqDevList HTTP GET\n")
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("获取设备列表错误：%s\n", err.Error())
@@ -196,7 +196,7 @@ func reqDevList(url string) error {
 		log.Printf("获取设备列表内容读取失败：%s\n", err.Error())
 		return err
 	}
-	fmt.Printf("获取设备列表内容:n%s\n", string(content))
+	//fmt.Printf("获取设备列表内容:n%s\n", string(content))
 	err = json.Unmarshal(content, &reqDevListData)
 	if err != nil {
 		log.Printf("解析设备列表json数据失败：%s\n", err.Error())
@@ -265,8 +265,12 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		fmt.Printf("建立连接成功:%d\n", hardwareID)
 		bindConn(hardwareID, conn)
 		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
-		if "塔吊" == devTypeStr {
+		switch devTypeStr {
+		case "塔吊":
 			taDiaoStart(hardwareID)
+		case "地磅":
+			diBangD39Start(hardwareID)
+
 		}
 	}
 }
@@ -291,6 +295,8 @@ func sendData(urlStr string, id uint, data url.Values) {
 	msg.HdID = id
 	msg.Data = data
 	msg.URLStr = urlStr
+	//log.Printf("发送%s:%v\n", urlStr, data)
+	fmt.Printf("发送%s:%v\n", urlStr, data)
 	comm.SendMsg(msg)
 }
 
@@ -311,8 +317,8 @@ func IntiDevice() error {
 		}
 	}()
 	//塔吊是主动上报 只能被动接收 在创建连接的时候就建立读协程等待数据
-	dianBiaoIntAutoGet() //启动电表数据获取
-	shuiBiaoAutoGet()    //启动水表数据获取
-	wuShuiAutoGet()      //启动污水数据获取
+	dianBiaoInitAutoGet() //启动电表数据获取
+	shuiBiaoAutoGet()     //启动水表数据获取
+	wuShuiAutoGet()       //启动污水数据获取
 	return nil
 }

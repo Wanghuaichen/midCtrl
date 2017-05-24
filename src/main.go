@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"serv"
+	"time"
+	"fmt"
 )
 
 // serviceConn 和主服务器的连接
@@ -51,5 +53,7 @@ func main() {
 		//data := devices.GetData()
 		//fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
 		//serv.SendData(data)
+		time.Sleep(time.Minute * 1)
+		fmt.Println("run main")
 	}
 }

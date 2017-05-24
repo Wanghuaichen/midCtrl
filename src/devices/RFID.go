@@ -11,29 +11,33 @@
 上报卡号0x60（由控制器主动发送）
 FrameHeader  ID       Length    Command Code       Data     CheckXOR
 0X7F 		 0XFF     xx        0x60               xxx        xor
-*/
-/*
-7F 00 0D 60 E2 00 00 15 67 16 02 17 03 30 EF 52 F8 7F 00 0D 60 E2 00 00 15 67 16 02 17 03 30 EF 52 F8
-E2 00 00 15 67 16 02 17 03 30 EF
-E2 00 00 15 24 03 02 18 04 10 EA
+
+7F 00 0D 60 E2 00 00 15 67 16 02 17 03 30 EF 52 F8
+7F 00 0D 60 E2 00 00 15 67 16 02 17 03 30 EF 52 F8
+E2 00 00 15 67 16 02 17 03 30 EF 52
+E2 00 00 15 24 03 02 18 04 10 EA 6C
 
 
 7F 00 0D 60 E2 00 00 15 24 03 02 18 04 10 EA 6C FD
-E2 00 00 15 24 03 02 18 04 10 EA
+E2 00 00 15 24 03 02 18 04 10 EA 6C
 A105031007195
 
 
 7F 00 0D 60 E2 00 00 15 24 19 01 12 14 80 82 C3 F9
-E2 00 00 15 24 19 01 12 14 80 82
+E2 00 00 15 24 19 01 12 14 80 82 C3
 A105031007191
 
 7F 00 0D 60 E2 00 00 15 24 03 01 53 06 30 D7 30 FE
-E2 00 00 15 24 03 01 53 06 30 D7
+E2 00 00 15 24 03 01 53 06 30 D7 30
 A105031007192
+
+E2 00 51 42 05 11 01 35 20 30 41 CF
 */
 package devices
 
-import "log"
+import "bufio"
+import "strconv"
+import "net/url"
 
 //等待rfid上报数据
 func rfidDataHandle(id uint) {
@@ -42,18 +46,25 @@ func rfidDataHandle(id uint) {
 	if conn == nil {
 		return
 	}
-	buf := make([]byte, 0, 1024)
-	len := 0 //buf中最后数据位置
-	//sIdx := 0 //buf中开始数据位置
-GO_ON_READ:
+	tryTimes := 0
 	for {
-		n, err := conn.Read(buf)
+		buff := bufio.NewReader(conn)
+		dat, err := buff.ReadBytes(0x7F)
 		if err != nil {
-			log.Printf("读数据错误：%s\n", err.Error())
-			continue GO_ON_READ
+			tryTimes++
+			if tryTimes > 5 {
+				unBindConn(id)
+				return
+			}
+			continue
 		}
-		len = len + n
-
+		tryTimes = 0
+		if dat[0] != 0x00 && dat[1] != 0x0D && dat[2] != 0x60 { //id未设置为0，数据长度为13=0xD,0x60上报命令
+			continue
+		}
+		userID := bytesToString(dat[3:15])
+		rfid := url.Values{"rfid": {userID}}
+		sendData("RFID", id, rfid) //发送数据给服务器
 	}
 }
 
@@ -63,4 +74,12 @@ func xorVerify(dat []byte) byte {
 		xor = xor ^ v
 	}
 	return xor
+}
+
+func bytesToString(dat []byte) string {
+	str := ""
+	for _, b := range dat {
+		str += strconv.FormatInt(int64(b), 16)
+	}
+	return str
 }

@@ -52,9 +52,9 @@ var dianBiaoPeriod = 30 * time.Second
 //var dianBiaoSync = make(chan bool, 1)
 
 // 初始化按自动间隔获取数据
-func dianBiaoIntAutoGet() {
+func dianBiaoInitAutoGet() {
 	go diaoBiaoGetData()
-
+	log.Printf("电表开始获取数据\n")
 }
 
 func delay() {
@@ -66,7 +66,7 @@ func delay() {
 func diaoBiaoGetData() {
 	for {
 		for _, id := range devTypeTable["电表"] {
-			var dianBiaoJSONRecod = url.Values{"kw": {""}, "pt": {""}, "ct": {""}, "record": {""}}
+			dianBiaoJSONRecod := url.Values{"kw": {""}, "pt": {""}, "ct": {""}, "record": {""}}
 			conn := getConn(id)
 			if conn == nil {
 				log.Printf("获取连接错误：%d\n", id)
@@ -115,7 +115,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 	}
 
 	var len int
-	buff := make([]byte, 30) //接收数据的buff
+	buff := make([]byte, 50) //接收数据的buff
 
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	for tryTimes := 3; tryTimes > 0; tryTimes-- {
@@ -136,7 +136,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 				log.Printf("读取数据失败:%s\n", err.Error()) //可能连接已经断开
 				_, err := conn.Write([]byte{0})        //发送测试连接数据到设备
 				if err != nil {
-					log.Println("写入设备数据失败：", err.Error())
+					log.Println("电表写入设备数据失败：", err.Error())
 					return []byte{}, err
 				}
 				continue
@@ -174,7 +174,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 func readTotalEnergy(id uint) (int64, error) {
 	//构造要发送的数据，计算CRC
 	data := []byte{0x1, 0x3, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0}
-	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	buff, err := reqDevData(id, data, addModebusCRC16, checkModbusCRC16)
 	if err != nil {
 		return 0, err
 	}
@@ -189,7 +189,7 @@ func writeTotalEnergy(id string) {
 // 获取当前功率
 func readPower(id uint) (int64, error) {
 	data := []byte{0x1, 0x3, 0x0, 0x8, 0x0, 0x2, 0x0, 0x0}
-	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	buff, err := reqDevData(id, data, addModebusCRC16, checkModbusCRC16)
 	if err != nil {
 		return 0, err
 	}
@@ -202,7 +202,7 @@ func readPower(id uint) (int64, error) {
 
 func readtPT(id uint) (int64, error) {
 	data := []byte{0x1, 0x3, 0x0, 0x10, 0x0, 0x1, 0x0, 0x0}
-	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	buff, err := reqDevData(id, data, addModebusCRC16, checkModbusCRC16)
 	if err != nil {
 		return 0, err
 	}
@@ -216,7 +216,7 @@ func readtPT(id uint) (int64, error) {
 
 func readCT(id uint) (int64, error) {
 	data := []byte{0x1, 0x3, 0x0, 0x11, 0x0, 0x1, 0x0, 0x0}
-	buff, err := reqDevData(id, data, dianBiaoAddCRC, dianBiaoCheckCRC)
+	buff, err := reqDevData(id, data, addModebusCRC16, checkModbusCRC16)
 	if err != nil {
 		return 0, err
 	}
@@ -284,7 +284,7 @@ func checkModbusCRC16(data []byte) bool {
 	return false
 }
 
-// dianBiaoAddCRC 把数据后两位改为CRC校验码
+// addModebusCRC16 把数据后两位改为CRC校验码
 func addModebusCRC16(data []byte) []byte {
 	len := len(data)
 	l, h := crc16Modbus(data[:len-2])
