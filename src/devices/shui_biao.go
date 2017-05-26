@@ -29,6 +29,7 @@ fe fe  68 10 aa aa aa aa aa aa aa 01 03 1F 90 AA 7b 16    //90和1f 可互换  A
 package devices
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"strconv"
@@ -51,35 +52,41 @@ func readSB() {
 			data := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16}
 			buff, err := reqDevData(id, data, nil, nil)
 			if err != nil {
-				return
+				continue
 			}
 			//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
-			//取出开头的0xFE
+			//去除开头的0xFE
+			//fmt.Printf("水表请求数据到：%x\n", buff)
 			for {
 				if buff[0] == 0xFE && len(buff) > 2 {
 					buff = buff[1:]
 				} else {
 					break
 				}
-
 			}
-			if len(buff) != 40 {
-				return
+			//fmt.Printf("buff:%x len:%d\n", buff, len(buff))
+			if len(buff) != 35 && buff[34] != 0x16 {
+				fmt.Printf("水表数据长度不对：%x\n", buff)
+				continue
 			}
+			//fmt.Printf("水量：%x\n", buff[14:18])
 			zongLeiJi := getShuiLiang(buff[14:18])
-			yueLeiJi := getShuiLiang(buff[19:23])
-			sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {strconv.FormatInt(int64(yueLeiJi)*1000, 10)}}
+			//yueLeiJi := getShuiLiang(buff[19:23])
+			sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
+			fmt.Printf("水表发送：%v\n", sData)
 			sendData("水表", id, sData)
 		}
+
 		time.Sleep(shuiBiaoPeriod)
 	}
 }
 
 func getShuiLiang(dat []byte) int {
-	dat = invert(dat)
+	//dat = invert(dat)
 	r := 0
 	for i, v := range dat {
-		r = r + int(transBCD(v))*int(math.Pow10(i))
+		r = r + int(transBCD(v))*int(math.Pow10(i*2))
+		//fmt.Println(r)
 	}
 	return r
 }
@@ -94,7 +101,7 @@ func invert(dat []byte) []byte {
 
 //将BCD码转为实际值
 func transBCD(dat byte) uint8 {
-	return dat&0xF0*10 + dat&0xF
+	return (dat>>4)*10 + dat&0xF
 }
 
 func sum(dat []byte) byte {

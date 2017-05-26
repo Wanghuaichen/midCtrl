@@ -42,9 +42,9 @@ type DevType struct {
 
 var devList = make(map[uint]*Device, 100) //设备列表
 
-var devTypeTable = make(map[string][]uint, 10) //设备列表的类型索引，值为该类型的所有设备
-var reqDevListTicker = time.NewTicker(time.Minute * 2)
-var reportStatusTicker = time.NewTicker(time.Second * 300)
+var devTypeTable = make(map[string][]uint, 10)             //设备列表的类型索引，值为该类型的所有设备
+var reqDevListTicker = time.NewTicker(time.Minute * 2)     //请求列表周期
+var reportStatusTicker = time.NewTicker(time.Second * 300) //状态上报周期
 
 /*
 TADIAO-001= 塔吊
@@ -81,6 +81,8 @@ func getDevType(dev string) (result string, err error) {
 		result = "地磅"
 	case "SHEXIANGTOU":
 		result = "摄像头"
+	case "ZNDIBANG":
+		result = "智能地磅"
 	default:
 		err = errors.New("设备类型不存在")
 	}
@@ -107,7 +109,7 @@ var urlTable = map[string]string{
 	"电表":   "http://39.108.5.184/smart/api/saveElectricityData",
 	"水表":   "http://39.108.5.184/smart/api/saveWaterData",
 	"塔吊":   "http://39.108.5.184/smart/api/saveCraneData",
-	"污水":   "http://39.108.5.184/smart-api/api/checkIn",
+	"污水":   "http://39.108.5.184/smart/api/savePhData",
 	"环境":   "http://39.108.5.184/smart/api/saveEnvData",
 	"RFID": "http://39.108.5.184/smart/api/checkIn",
 	"电梯":   "http://39.108.5.184/smart/api/saveElevatorData",
@@ -229,9 +231,9 @@ func reqDevList(url string) error {
 
 			//创建新的监听并等待连接
 			port := strconv.FormatUint(uint64(dev.port), 10)
-			listen, err := net.Listen("tcp", "localhost:"+port)
+			listen, err := net.Listen("tcp", "0.0.0.0:"+port)
 			if err != nil {
-				log.Printf("监听失败:%s,%s\n", "localhost:"+port, err.Error())
+				log.Printf("监听失败:%s,%s\n", "0.0.0.0:"+port, err.Error())
 				listen.Close()
 				continue
 			}
@@ -250,6 +252,7 @@ func getConn(id uint) net.Conn {
 	if _, ok := devList[id]; ok {
 		return devList[id].conn
 	}
+	fmt.Printf("id 不存在,%d %d\n", id, devList[id].conn)
 	return nil
 }
 
@@ -270,6 +273,8 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 			taDiaoStart(hardwareID)
 		case "地磅":
 			diBangD39Start(hardwareID)
+		case "RFID":
+			rfidStart(hardwareID)
 
 		}
 	}
@@ -296,7 +301,7 @@ func sendData(urlStr string, id uint, data url.Values) {
 	msg.Data = data
 	msg.URLStr = urlStr
 	//log.Printf("发送%s:%v\n", urlStr, data)
-	fmt.Printf("发送%s:%v\n", urlStr, data)
+	//fmt.Printf("发送%s:%v\n", urlStr, data)
 	comm.SendMsg(msg)
 }
 
@@ -320,5 +325,6 @@ func IntiDevice() error {
 	dianBiaoInitAutoGet() //启动电表数据获取
 	shuiBiaoAutoGet()     //启动水表数据获取
 	wuShuiAutoGet()       //启动污水数据获取
+	huanjingInitAutoGet() //启动环境数据获取
 	return nil
 }

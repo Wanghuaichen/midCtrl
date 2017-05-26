@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -25,10 +26,11 @@ func readWS() {
 		for _, id := range devTypeTable["污水"] {
 			//构造要发送的数据，计算CRC
 			data := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8}
-			buff, err := reqDevData(id, data, nil, tableCheckCRC)
+			buff, err := reqDevData(id, data, nil, checkModbusCRC16)
 			if err != nil {
-				return
+				continue
 			}
+			fmt.Printf("污水请求到数据：%v\n", data)
 			var temperature int
 			var ph int
 			//var alarm int
@@ -40,7 +42,8 @@ func readWS() {
 			//wuShui := buff[3:14]
 			//sendServ([]byte(generateDataJsonStr(id, "污水", string(wuShui))))
 
-			jsonData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperatureph": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {""}}
+			jsonData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperature": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {"0"}}
+			fmt.Printf("污水发送：%v\n", jsonData)
 			sendData("污水", id, jsonData)
 		}
 		time.Sleep(wuShuiPeriod)

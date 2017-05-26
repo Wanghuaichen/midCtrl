@@ -6,11 +6,12 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
 func compareSlice(s1 []byte, s2 []byte) bool {
-	if len(s1) != len(s1) {
+	if len(s1) != len(s2) {
 		return false
 	}
 	for i, v := range s1 {
@@ -28,7 +29,7 @@ func connServ(addr string) {
 	}
 	fmt.Printf("连接：%s成功\n", addr)
 	switch addr {
-	case "10101":
+	case "10101": //RFID
 		go rfid(conn)
 	case "10102":
 		go rfid(conn)
@@ -45,8 +46,10 @@ func connServ(addr string) {
 		go diBangD39(conn)
 	case "10601": //污水
 		go wushui(conn)
-	case "10701":
-	case "10801":
+	case "10701": //环境
+		go huanjing(conn)
+	case "10801": //塔吊
+		//tadiao(conn)
 	case "10901":
 	default:
 	}
@@ -55,39 +58,34 @@ func connServ(addr string) {
 func rfid(conn net.Conn) {
 	log.Println("RFID开始发送数据")
 	rfidData := []string{
-		"000D60E2005142051101362850015935",
-		"000D60E20051420511013624101C4935",
-		"000D60E2005142051101362470196F35",
-		"000D60E2005142051101362530133D35",
-		"000D60E20051420511013626000FF035",
-		"000D60E20051420511013624201C4A35",
-		"000D60E2005142051101362480197035",
-		"000D60E2005142051101362540133E35",
-		"000D60E20051420511013626100D9535",
-		"000D60E200514205110136217031F135",
-		"000D60E20051420511013622302E8F35",
-		"000D60E2005142051101362290272535",
-		"000D60E2005142051101362350232735",
-		"000D60E200514205110136218031F235",
-		"000D60E20051420511013622402E9035",
-		"000D60E2005142051101362300272635",
-		"000D60E2005142051101362360232835",
-		"000D60E20051420511013619304A1135",
+		"75000D60E200514205110135203041CF35",
+		"75000D60E2005142051101351970465935",
+		"75000D60E2005142051101352400201C35",
 	}
 	len := len(rfidData)
 	for {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		i := r.Intn(len)
-		conn.Write([]byte(rfidData[i]))
-		time.Sleep(time.Millisecond * 200)
+		rd := stringToByte(rfidData[i])
+		fmt.Printf("发送RFID:%x\n", rd)
+		conn.Write(rd)
+		time.Sleep(time.Millisecond * 100000)
 	}
+}
+func stringToByte(dat string) []byte {
+	r := make([]byte, 0, 22)
+	for i := 0; i < len(dat); i += 2 {
+		hex, _ := strconv.ParseUint(dat[i:i+2], 16, 8)
+		r = append(r, uint8(hex))
+	}
+	return r
 }
 func diBangD39(conn net.Conn) {
 	log.Println("地磅开始发送数据")
 	for {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		times := r.Intn(10)
-		dat := []string{"23.543=", ".123=", "546.7=", "86.45=", "546.=", "23.5493=", ".1273=", "5446.7=", "86.495=", "58746.="}
+		dat := []string{"23.54300=", ".1230000=", "546.7000=", "86.45000=", "546.0000=", "23.54930=", ".1273000=", "5446.700=", "86.49500=", "58746.00="}
 		for i := times; times > 0; times-- {
 			conn.Write([]byte(dat[i]))
 		}
@@ -127,7 +125,7 @@ func dianbiao(conn net.Conn) {
 func shuibiao(conn net.Conn) {
 	log.Println("水表开始获取数据")
 	for {
-		time.Sleep(time.Second * 1)
+		//time.Sleep(time.Second * 1)
 		buff := make([]byte, 1024)
 		n, ok := conn.Read(buff)
 		if ok != nil {
@@ -155,7 +153,7 @@ func wushui(conn net.Conn) {
 		fmt.Printf("污水收到：%v \n", buff[:n])
 		switch {
 		case compareSlice(buff[:n], []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8}): //01 03 00 00 00 06 c5 c8
-			data := []byte{0x01, 0x03, 0x04, 0x03, 0x16, 0x00, 0xF5, 0xDB, 0xF4, 0x03, 0x16}
+			data := []byte{0x01, 0x03, 0x04, 0x03, 0x16, 0x00, 0xF5, 0xDB, 0xF4}
 			n, err := conn.Write(data)
 			if err != nil {
 				log.Printf("发送污水失败：%d,%s\n", n, err.Error())
@@ -177,6 +175,22 @@ func tadiao(conn net.Conn) {
 	}
 }
 
+func huanjing(conn net.Conn) {
+	log.Println("环境开始获取数据")
+	for {
+		buff := make([]byte, 1024)
+		n, ok := conn.Read(buff)
+		if ok != nil {
+			fmt.Printf("读取环境失败  %s\n", ok.Error())
+			continue
+		}
+		fmt.Printf("环境收到：%v \n", buff[:n])
+		switch {
+		case compareSlice(buff[:n], []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8}):
+			conn.Write([]byte{0x01, 0x03, 0x00, 0x40, 0x00, 0x12, 0x02, 0xD0, 0x00, 0x2B, 0x00, 0x36, 0x01, 0x22, 0x02, 0x86, 0x00, 0x84, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF, 0x1C})
+		}
+	}
+}
 func main() {
 	InitLoger()
 	port := []string{"10101", "10102", "10103", "10104", "10201", "10301", "10401", "10501", "10601", "10701", "10801", "10901"}

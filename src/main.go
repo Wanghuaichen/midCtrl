@@ -3,11 +3,10 @@ package main
 import (
 	"config"
 	"devices"
+	"fmt"
 	"log"
-	"os"
 	"serv"
 	"time"
-	"fmt"
 )
 
 // serviceConn 和主服务器的连接
@@ -18,12 +17,12 @@ var serviceAddr string
 
 // InitLoger 初始化log配置
 func InitLoger() error {
-	file, err := os.OpenFile("./log.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
+	/*file, err := os.OpenFile("./log.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
 	if err != nil {
 		return err
-	}
+	}*/
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetOutput(file)
+	//log.SetOutput(file)
 	return nil
 
 }

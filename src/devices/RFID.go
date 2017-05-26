@@ -35,36 +35,80 @@ E2 00 51 42 05 11 01 35 20 30 41 CF
 */
 package devices
 
-import "bufio"
-import "strconv"
-import "net/url"
+import (
+	"bytes"
+	"fmt"
+	"log"
+	"net/url"
+	"strconv"
+	"strings"
+)
+
+func rfidStart(id uint) {
+	go rfidDataHandle(id)
+	log.Printf("RFID:%d  开始接受数据\n", id)
+}
 
 //等待rfid上报数据
 func rfidDataHandle(id uint) {
 	conn := getConn(id)
 	defer conn.Close()
 	if conn == nil {
+		log.Printf("RFID conn不存在")
 		return
 	}
+	buf := make([]byte, 1024)
+	len := 0  //buf中最后数据位置
+	sIdx := 0 //buf中开始数据位置
 	tryTimes := 0
+RFID_GO_ON_READ:
 	for {
-		buff := bufio.NewReader(conn)
-		dat, err := buff.ReadBytes(0x7F)
+		//buff := bufio.NewReader(conn)
+		//dat, err := buff.ReadBytes(byte(0x7F))
+		n, err := conn.Read(buf[len:])
 		if err != nil {
-			tryTimes++
-			if tryTimes > 5 {
+			log.Printf("读数据错误：%s\n", err.Error())
+			if tryTimes > 3 {
 				unBindConn(id)
 				return
 			}
+			tryTimes++
 			continue
 		}
 		tryTimes = 0
-		if dat[0] != 0x00 && dat[1] != 0x0D && dat[2] != 0x60 { //id未设置为0，数据长度为13=0xD,0x60上报命令
-			continue
+		len = len + n
+		for {
+			sIndex := bytes.IndexByte(buf[sIdx:len], byte(0x75)) //帧开始位置
+			if sIndex == -1 {
+				log.Printf("数据中未找到包起始符号:%v  sIdex:%d  len:%d\n", buf[sIdx:len], sIdx, len)
+				len = 0
+				sIdx = 0
+				continue RFID_GO_ON_READ
+			}
+			//下一组
+			if sIndex+17 > len {
+				//len = 0
+				//sIdx = 0
+				continue RFID_GO_ON_READ
+			}
+			dat := buf[sIndex+1 : sIndex+17]
+			//log.Printf("RFID读到数据:%x\n", dat)
+
+			if dat[0] != 0x00 && dat[1] != 0x0D && dat[2] != 0x60 { //id未设置为0，数据长度为13=0xD,0x60上报命令
+				log.Printf("RFID 数据格式错误")
+				continue
+			}
+			userID := bytesToString(dat[3:15])
+			rfid := url.Values{"rfid": {userID}}
+			fmt.Printf("RFID发送：%v\n", rfid)
+			sendData("RFID", id, rfid) //发送数据给服务器
+			sIdx += 17
+			if sIdx == len {
+				len = 0
+				sIdx = 0
+				continue RFID_GO_ON_READ
+			}
 		}
-		userID := bytesToString(dat[3:15])
-		rfid := url.Values{"rfid": {userID}}
-		sendData("RFID", id, rfid) //发送数据给服务器
 	}
 }
 
@@ -79,7 +123,12 @@ func xorVerify(dat []byte) byte {
 func bytesToString(dat []byte) string {
 	str := ""
 	for _, b := range dat {
-		str += strconv.FormatInt(int64(b), 16)
+		ch := strconv.FormatInt(int64(b), 16)
+		if len(ch) == 1 {
+			str += "0"
+		}
+		str += ch
 	}
+	str = strings.ToUpper(str)
 	return str
 }

@@ -3,6 +3,7 @@ package devices
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -169,6 +170,7 @@ func handleRealData(id uint, pHead []byte, dat []byte) {
 	if err != nil {
 		log.Printf("数据转换失败：%s\n", err.Error())
 	}
+	fmt.Printf("塔吊实时发送：%v\n", realData.cdr.toServData())
 	sendData("塔吊", id, realData.cdr.toServData())
 	taDiaoReplyMsg(pHead, realData.num)
 }
@@ -222,11 +224,12 @@ func taDiaoDataHandle(id uint) {
 	if conn == nil {
 		return
 	}
-	buf := make([]byte, 0, 1024)
+	buf := make([]byte, 1024)
 	len := 0  //buf中最后数据位置
 	sIdx := 0 //buf中开始数据位置
 	var packHead packHeadType
 	tryTimes := 0
+	conn.SetReadDeadline(time.Time{})
 GO_ON_READ:
 	for {
 		n, err := conn.Read(buf)
@@ -237,16 +240,19 @@ GO_ON_READ:
 				return
 			}
 			tryTimes++
+			continue
 		}
-		tryTimes = 0
 		len = len + n
 		//buff := bytes.NewBuffer(buf)
 		for {
-			sIndex := bytes.IndexByte(buf[:len], byte('$')) //帧开始位置
+			sIndex := bytes.IndexByte(buf[sIdx:len], byte('$')) //帧开始位置
 			if sIndex == -1 {
-				log.Printf("数据中未找到包起始符号:%v\n", buf[:len])
+				log.Printf("数据中未找到包起始符号:%v  sIdex:%d  len:%d\n", buf[sIdx:len], sIdx, len)
 				len = 0
 				sIdx = 0
+				continue GO_ON_READ
+			}
+			if sIndex+20 > len {
 				continue GO_ON_READ
 			}
 			packHeadData := buf[sIndex : sIndex+20]
@@ -259,7 +265,7 @@ GO_ON_READ:
 					return
 				}
 			} else { //包头无效，继续找下一个数据包
-				sIdx++
+				sIdx += 20
 				continue
 			}
 			if packHead.len >= uint16(len-sIdx-20) { //之后的数据不完整，重新再读,包头长度20
@@ -290,9 +296,9 @@ GO_ON_READ:
 				len = 0
 				sIdx = 0
 			}
+			tryTimes = 0
 		}
 	}
-
 }
 
 func taDiaoStart(id uint) {

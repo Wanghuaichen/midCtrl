@@ -47,7 +47,7 @@ const (
 var readFormt = make([]byte, 0, 20)
 
 //string 行为，int间隔秒数
-var dianBiaoPeriod = 30 * time.Second
+var dianBiaoPeriod = 20 * time.Second
 
 //var dianBiaoSync = make(chan bool, 1)
 
@@ -85,7 +85,7 @@ func diaoBiaoGetData() {
 			}
 			dianBiaoJSONRecod["record"] = []string{strconv.FormatInt(d, 10)}
 
-			d, err = readtPT(id)
+			/*d, err = readtPT(id)
 			if err != nil {
 				continue
 			}
@@ -96,7 +96,10 @@ func diaoBiaoGetData() {
 				continue
 			}
 			dianBiaoJSONRecod["ct"] = []string{strconv.FormatInt(d, 10)}
-
+			*/
+			dianBiaoJSONRecod["pt"] = []string{"0"}
+			dianBiaoJSONRecod["ct"] = []string{"0"}
+			fmt.Printf("电表发送：%v\n", dianBiaoJSONRecod)
 			sendData("电表", id, dianBiaoJSONRecod)
 		}
 		time.Sleep(dianBiaoPeriod)
@@ -115,14 +118,16 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 	}
 
 	var len int
-	buff := make([]byte, 50) //接收数据的buff
-
+	buff := make([]byte, 300) //接收数据的buff
+	defer func() {
+		conn.SetDeadline(time.Time{})
+	}()
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	for tryTimes := 3; tryTimes > 0; tryTimes-- {
-		fmt.Printf("写入设备数据：%v\n", cmd)
+		//fmt.Printf("写入设备数据：%v\n", cmd)
 		_, err = conn.Write(cmd) //发送数据到设备
 		if err != nil {
-			log.Println("写入设备数据失败：", err.Error())
+			log.Printf("%d写入设备数据失败：%s\n", id, err.Error())
 			return []byte{}, err
 		}
 
@@ -130,13 +135,13 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 		len, err = (conn).Read(buff)
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				log.Printf("读取数据超时:%s\n", err.Error())
+				log.Printf("%d读取数据超时:%s\n", id, err.Error())
 				continue
 			} else {
-				log.Printf("读取数据失败:%s\n", err.Error()) //可能连接已经断开
-				_, err := conn.Write([]byte{0})        //发送测试连接数据到设备
+				log.Printf("%d读取数据失败:%s\n", id, err.Error()) //可能连接已经断开
+				_, err := conn.Write([]byte{0})              //发送测试连接数据到设备
 				if err != nil {
-					log.Println("电表写入设备数据失败：", err.Error())
+					log.Printf("%d写入设备数据失败：%s", id, err.Error())
 					return []byte{}, err
 				}
 				continue
@@ -144,7 +149,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 		}
 		if checkCRC != nil {
 			if !checkCRC(buff[:len]) {
-				log.Printf("CRC校验错误：%v\n", buff[:len])
+				log.Printf("%d CRC校验错误：%v\n", id, buff[:len])
 				err = errors.New(CRC_ERROR)
 				continue
 			}
@@ -153,11 +158,11 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 	}
 	rspData = buff[:len]
 	if err != nil {
-		log.Printf("获取设备数据失败：%s\n", err.Error())
+		log.Printf("%d获取设备数据失败：%s\n", id, err.Error())
 		if err.Error() == CRC_ERROR {
-			log.Println("获取数据时CRC校验失败")
+			log.Printf("%d获取数据时CRC校验失败\n", id)
 		} else if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-			log.Println("不能读到设备数据，需要检查设备和转化设备连接是否正常")
+			log.Printf("%d 不能读到设备数据，需要检查设备和转化设备连接是否正常\n", id)
 			//relayError(id, "NO_Data")
 		} else {
 			log.Printf("%d断开连接\n", id)
@@ -167,7 +172,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 		}
 		return
 	}
-	fmt.Printf("收到设备数据：%v\n", buff[:len])
+	//fmt.Printf("收到设备数据：%v\n", buff[:len])
 	return
 }
 

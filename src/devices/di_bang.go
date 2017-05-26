@@ -2,6 +2,7 @@ package devices
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -38,14 +39,15 @@ func hanldeD39(id uint) {
 	for {
 		buff := bufio.NewReader(conn)
 		dat, err := buff.ReadString('=')
+		//fmt.Printf("地磅读到数据：%s\n", dat)
 		if err != nil {
 			log.Printf("地磅读数据错误：%s\n", err.Error())
-			tryTimes++
-			if tryTimes > 5 {
+			if tryTimes > 3 {
 				unBindConn(id)
 				//上报链接断开
 				return
 			}
+			tryTimes++
 			continue
 		}
 		tryTimes = 0
@@ -57,6 +59,7 @@ func hanldeD39(id uint) {
 			if strConuter > 5 {
 				w := dibangDataTrans([]byte(dat)[:len(dat)-1])
 				urlData := url.Values{"weight": {w}}
+				fmt.Printf("地磅发送数据:%v\n", urlData)
 				sendData("地磅", id, urlData)
 			}
 		} else {
@@ -69,9 +72,9 @@ func hanldeD39(id uint) {
 
 func dibangDataTrans(dat []byte) string {
 	r := invert(dat)
-	kg, err := strconv.ParseFloat(string(r), 32)
+	kg, err := strconv.ParseFloat(string(r), 64)
 	if err != nil {
 		log.Printf("d39转换数据失败:%s %s\n", string(r), err.Error())
 	}
-	return strconv.FormatInt(int64(kg*10000), 10)
+	return strconv.FormatInt(int64(kg*1000000000000000)/100000000000, 10)
 }
