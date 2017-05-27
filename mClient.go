@@ -22,7 +22,7 @@ func compareSlice(s1 []byte, s2 []byte) bool {
 	return true
 }
 func connServ(addr string) {
-	conn, err := net.Dial("tcp", "localhost:"+addr)
+	conn, err := net.Dial("tcp", "39.108.5.184:"+addr)
 	if err != nil {
 		fmt.Printf("连接：%s失败  %s\n", addr, err.Error())
 		return
@@ -84,10 +84,14 @@ func diBangD39(conn net.Conn) {
 	log.Println("地磅开始发送数据")
 	for {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		times := r.Intn(10)
+		times := r.Intn(6)
+		index := r.Intn(10)
 		dat := []string{"23.54300=", ".1230000=", "546.7000=", "86.45000=", "546.0000=", "23.54930=", ".1273000=", "5446.700=", "86.49500=", "58746.00="}
-		for i := times; times > 0; times-- {
-			conn.Write([]byte(dat[i]))
+		for i := index; index > 0; index-- {
+			for k := times; k > 0; k-- {
+				conn.Write([]byte(dat[i]))
+			}
+
 		}
 		time.Sleep(time.Millisecond * 500)
 	}

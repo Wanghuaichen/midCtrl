@@ -64,11 +64,11 @@ func readSB() {
 					break
 				}
 			}
-			//fmt.Printf("buff:%x len:%d\n", buff, len(buff))
-			if len(buff) != 35 && buff[34] != 0x16 {
+			fmt.Printf("buff:%x len:%d\n", buff, len(buff))
+			/*if len(buff) != 35 && buff[34] != 0x16 {
 				fmt.Printf("水表数据长度不对：%x\n", buff)
 				continue
-			}
+			}*/
 			//fmt.Printf("水量：%x\n", buff[14:18])
 			zongLeiJi := getShuiLiang(buff[14:18])
 			//yueLeiJi := getShuiLiang(buff[19:23])
