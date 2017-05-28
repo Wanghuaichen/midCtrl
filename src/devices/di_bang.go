@@ -58,9 +58,13 @@ func hanldeD39(id uint) {
 			strConuter++
 			if strConuter > 5 {
 				w := dibangDataTrans([]byte(dat)[:len(dat)-1])
-				urlData := url.Values{"weight": {w}}
-				fmt.Printf("地磅发送数据:%v\n", urlData)
-				sendData("地磅", id, urlData)
+				if w != "0" {
+					urlData := url.Values{"weight": {w}}
+					fmt.Printf("地磅发送数据:%v\n", urlData)
+					sendData("地磅", id, urlData)
+				} else {
+					strConuter = 0 //重新计数
+				}
 			}
 		} else {
 			strConuter = 0 //重新计数
