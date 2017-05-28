@@ -132,6 +132,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 		}
 
 		//读取设备回复的数据
+		time.Sleep(time.Millisecond * 100) //等待100ms 等数据全部发完
 		len, err = (conn).Read(buff)
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
@@ -178,6 +179,10 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 
 func readTotalEnergy(id uint) (int64, error) {
 	//构造要发送的数据，计算CRC
+	//01 03 00 00 00 02 C4 0B   -->>01 03 04 09 18 09 13 3E 35
+	//01 03 00 00 00 09 85 CC   -->>01 03 12 09 06 09 06 09 02 0F 9C 0F 98 0F 98 00 AC 00 7A 00 7C 48 BB
+	//01 03 00 00 00 0A C5 CD   -->>01 03 14 09 1B 09 16 09 18 0F BB 0F B9 0F BD 00 CD 00 9C 00 9D 00 5A B9 22
+
 	data := []byte{0x1, 0x3, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0}
 	buff, err := reqDevData(id, data, addModebusCRC16, checkModbusCRC16)
 	if err != nil {

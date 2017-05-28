@@ -9,6 +9,7 @@ import (
 
 //01 03 00 00 00 06 c5 c8  发
 //收  01 03 04 03 16 00 F5 DB F4  03 16 为ph7.90  00 F5 为24.5度
+//电表侧 01 03 04 02 1A 00 F5 1A 0B    为ph5.38  24.5度
 //污水相关检测数据处理
 //he default baud rate is 9600. The data format is 8 bits, no parity, 1 stop bit.
 //这个协议很不明确

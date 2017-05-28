@@ -12,6 +12,11 @@ import (
 //校验crc16Modbus
 //通讯参数：波特率 9600  数据位 8位  无校验位
 
+/*
+01 03 00 40 00 1C 02 BF 00 17 00 1A 01 1A 01 FB
+00 B7 7F FF 7F FF 7F FF 7F FF 7F FF 7F FF 7F FF 7F FF 7F FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 72 B6
+*/
+
 var hjAddr uint8
 var huanJingPeriod = 20 * time.Second
 var reqHuanJingTicker = time.NewTicker(huanJingPeriod) //请求环境数据周期
