@@ -1,3 +1,5 @@
+package devices
+
 /*
 电表操作说明：
 he default baud rate is 9600. The data format is 8 bits, no parity, 1 stop bit.
@@ -26,8 +28,6 @@ Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * Unit
 
 电表设备使用 【51000，52000）端口
 */
-
-package devices
 
 import (
 	"errors"
@@ -63,10 +63,57 @@ func delay() {
 	time.Sleep(time.Duration(delayMs))
 }
 
+func dianBiaoStart(id uint) {
+	conn := getConn(id)
+	if conn == nil {
+		return
+	}
+	defer func() {
+		conn.Close() //关闭连接
+		if err := recover(); err != nil {
+			log.Printf("电表监测处理发生错误：%s\n", err)
+		}
+		//设置设备状态
+	}()
+	sData := url.Values{"kw": {"0"}, "pt": {"0"}, "ct": {"0"}, "record": {"0"}}
+	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09} //获取总电量命令 01 03 00 09 00 02 14 09
+	cmdPower := []byte{0x01, 0x03, 0x00, 0x00, 0x0A, 0x02, 0x14, 0x09}       //获取当前功率命令 01 03 00 0A 00 02 E4 09
+	rCh := make(chan []byte)
+	wCh := make(chan []byte)
+	go sendCmd(conn, wCh)
+	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2)
+	//log.Printf("电表开始获取数据\n")
+	for {
+		//获取用电量
+		wCh <- cmdTotalEnergy
+		//log.Printf("电表发送设备：%v\n", cmdTotalEnergy)
+		dat := <-rCh
+		if !checkModbusCRC16(dat) {
+			log.Printf("电表电量数据校验失败：%s\n", dat)
+			continue
+		}
+		totalEnergy := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100, 10)}
+		//获取当前功率
+		wCh <- cmdPower
+		dat = <-rCh
+		if !checkModbusCRC16(dat) {
+			log.Printf("电表功率数据校验失败：%s\n", dat)
+			continue
+		}
+		power := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+		sData["kw"] = []string{strconv.FormatInt(int64(power)*10, 10)}
+
+		fmt.Printf("电表发送%v\n", sData)
+		sendData("电表", id, sData)
+		time.Sleep(dianBiaoPeriod)
+	}
+}
+
 func diaoBiaoGetData() {
 	for {
 		for _, id := range devTypeTable["电表"] {
-			dianBiaoJSONRecod := url.Values{"kw": {""}, "pt": {""}, "ct": {""}, "record": {""}}
+			dianBiaoJSONRecod := url.Values{"kw": {""}, "pt": {""}, "ct": {"0"}, "record": {"0"}}
 			conn := getConn(id)
 			if conn == nil {
 				log.Printf("获取连接错误：%d\n", id)
@@ -118,7 +165,7 @@ func reqDevData(id uint, cmd []byte, addCRC func([]byte) []byte, checkCRC func([
 	}
 
 	var len int
-	buff := make([]byte, 300) //接收数据的buff
+	buff := make([]byte, 1024) //接收数据的buff
 	defer func() {
 		conn.SetDeadline(time.Time{})
 	}()

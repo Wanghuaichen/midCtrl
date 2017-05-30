@@ -38,11 +38,40 @@ import (
 
 var shuiBiaoPeriod = 20 * time.Second
 
-func shuiBiaoAutoGet() {
+/*func shuiBiaoAutoGet() {
 	go readSB()
 	log.Println("水表开始获取数据")
+}*/
+func shuiBiaoStart(id uint) {
+	conn := getConn(id)
+	if conn == nil {
+		return
+	}
+	defer func() {
+		conn.Close() //关闭连接
+		if err := recover(); err != nil {
+			log.Printf("水表监测处理发生错误：%s\n", err)
+		}
+		//设置设备状态
+	}()
+	cmd := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16} //获取水表数据命令
+	rCh := make(chan []byte)
+	wCh := make(chan []byte)
+	go sendCmd(conn, wCh)
+	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
+	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37)
+	for {
+		wCh <- cmd
+		dat := <-rCh
+		zongLeiJi := getShuiLiang(dat[16:20])
+		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
+		fmt.Printf("水表发送：%v\n", sData)
+		sendData("水表", id, sData)
+		time.Sleep(wuShuiPeriod)
+	}
 }
 
+/*
 // 读水表数据
 func readSB() {
 	for {
@@ -80,7 +109,7 @@ func readSB() {
 		time.Sleep(shuiBiaoPeriod)
 	}
 }
-
+*/
 func getShuiLiang(dat []byte) int {
 	//dat = invert(dat)
 	r := 0

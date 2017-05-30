@@ -2,6 +2,23 @@
 
 package devices
 
+/*
+{200 [{工地大门-入口 RFID-001 1 RFID识别器1 10101}
+{供电房 DIANBIAO-001 2 智能电表 10201}
+{塔楼核心筒 DIANTI-001 3 电梯 10301}
+{车棚旁绿化带 SHUIBIAO-001 4 智能水表 10401}
+{工地南门 DIBANG-001 5 地磅 10501}
+{工地污水沉降池 WUSHUI-001 6 污水监测 10601}
+{工地大门东侧 ENV-001 7 环境监测1 10701}
+{塔楼核心筒 TADIAO-001 8 塔吊 10801}
+{工地大门－出口 RFID-002 9 RFID识别器2 10102}
+{顶模电梯1 RFID-003 10 RFID识别器3 10103}
+{顶模电梯2 RFID-004 11 RFID识别器4 10104}
+{废料回收处 ZNDIBANG-001 12 智能地磅 11201}
+{顶模 DIANTI-002 13 电梯2 10302}
+{工地西区 WUSHUI-002 14 污水监测2 10602}
+{工地大门入口 ENV-002 15 环境监测2 10702}] }
+*/
 import (
 	"comm"
 	"encoding/json"
@@ -268,13 +285,22 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		fmt.Printf("建立连接成功:%d\n", hardwareID)
 		bindConn(hardwareID, conn)
 		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
+		log.Printf("%d--->%s\n", hardwareID, devTypeStr)
 		switch devTypeStr {
 		case "塔吊":
-			taDiaoStart(hardwareID)
+			//taDiaoStart(hardwareID)
 		case "地磅":
 			diBangD39Start(hardwareID)
 		case "RFID":
 			rfidStart(hardwareID)
+		case "环境":
+			huanJingStart(hardwareID)
+		case "污水":
+			wuShuiStart(hardwareID)
+		case "水表":
+			shuiBiaoStart(hardwareID)
+		case "电表":
+			dianBiaoStart(hardwareID)
 
 		}
 	}
@@ -321,10 +347,5 @@ func IntiDevice() error {
 			reportDevStatus()
 		}
 	}()
-	//塔吊是主动上报 只能被动接收 在创建连接的时候就建立读协程等待数据
-	dianBiaoInitAutoGet() //启动电表数据获取
-	shuiBiaoAutoGet()     //启动水表数据获取
-	wuShuiAutoGet()       //启动污水数据获取
-	huanjingInitAutoGet() //启动环境数据获取
 	return nil
 }

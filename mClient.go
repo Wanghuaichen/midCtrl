@@ -59,9 +59,9 @@ func connServ(addr string) {
 func rfid(conn net.Conn) {
 	log.Println("RFID开始发送数据")
 	rfidData := []string{
-		"75000D60E200514205110135203041CF35",
-		"75000D60E2005142051101351970465935",
-		"75000D60E2005142051101352400201C35",
+		"7F000D60E2005142051101390180F1B6FD",
+		"7F000D60E2005142051101381650686D35",
+		"7F000D60E20051420511013814707DF735",
 	}
 	len := len(rfidData)
 	for {
@@ -74,7 +74,7 @@ func rfid(conn net.Conn) {
 	}
 }
 func stringToByte(dat string) []byte {
-	r := make([]byte, 0, 22)
+	r := make([]byte, 0, 17)
 	for i := 0; i < len(dat); i += 2 {
 		hex, _ := strconv.ParseUint(dat[i:i+2], 16, 8)
 		r = append(r, uint8(hex))
@@ -91,10 +91,9 @@ func diBangD39(conn net.Conn) {
 		for i := index; index > 0; index-- {
 			for k := times; k > 0; k-- {
 				conn.Write([]byte(dat[i]))
+				time.Sleep(time.Millisecond * 3000)
 			}
-
 		}
-		time.Sleep(time.Millisecond * 500)
 	}
 }
 func dianbiao(conn net.Conn) {
@@ -110,17 +109,17 @@ func dianbiao(conn net.Conn) {
 		log.Printf("电表收到：%v \n", buff[:n])
 		var data []byte
 		switch {
-		case compareSlice(buff[:n], []byte{1, 3, 0, 16, 0, 1, 133, 207}):
+		case compareSlice(buff[:n], []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x01, 0x14, 0x09}):
 			data = []byte{177, 3, 2, 9, 96, 255, 230}
 			conn.Write(data) //24
 		case compareSlice(buff[:n], []byte{1, 3, 0, 17, 0, 1, 212, 15}):
 			data = []byte{83, 3, 2, 3, 32, 0, 160}
 			conn.Write(data) //800
-		case compareSlice(buff[:n], []byte{1, 3, 0, 0, 0, 2, 196, 11}):
-			data = []byte{69, 3, 4, 187, 245, 0, 9, 10, 231}
+		case compareSlice(buff[:n], []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09}):
+			data = []byte{0x01, 0x03, 0x04, 0x0A, 0x00, 0x02, 0x96, 0x78, 0xE5}
 			conn.Write(data) //6379.41
-		case compareSlice(buff[:n], []byte{1, 3, 0, 8, 0, 2, 69, 201}):
-			data = []byte{138, 3, 4, 187, 9, 0, 0, 53, 221}
+		case compareSlice(buff[:n], []byte{0x01, 0x03, 0x00, 0x00, 0x0A, 0x02, 0x14, 0x09}):
+			data = []byte{0x01, 0x03, 0x04, 0x04, 0x03, 0x02, 0x16, 0x8B, 0xAD}
 			conn.Write(data) //47.881
 		}
 		log.Printf("电表发送：%v\n", data)

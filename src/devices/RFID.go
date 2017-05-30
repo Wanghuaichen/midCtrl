@@ -1,5 +1,7 @@
-// 协议说明
+package devices
+
 /*
+协议说明
 串口设置：RS485/RS232 物理层   1 位起始位、 8 位数据位、 1 位停止位、 无奇偶校验， 半双工；通信波特率： 9600bps。
 
 
@@ -33,7 +35,6 @@ A105031007192
 
 E2 00 51 42 05 11 01 35 20 30 41 CF
 */
-package devices
 
 import (
 	"bytes"
@@ -44,9 +45,35 @@ import (
 	"strings"
 )
 
-func rfidStart(id uint) {
+/*func rfidStart(id uint) {
 	go rfidDataHandle(id)
 	log.Printf("RFID:%d  开始接受数据\n", id)
+}*/
+
+func rfidStart(id uint) {
+	conn := getConn(id)
+	if conn == nil {
+		log.Printf("%d RFID获取连接失败\n", id)
+		return
+	}
+	defer func() {
+		conn.Close() //关闭连接
+		if err := recover(); err != nil {
+			log.Printf("RFID监测处理发生错误：%s\n", err)
+		}
+		//设置设备状态
+	}()
+
+	rCh := make(chan []byte)
+	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17)
+	for {
+		dat := <-rCh
+		fmt.Printf("RFID:%v\n", dat)
+		userID := bytesToString(dat[4:16])
+		rfid := url.Values{"rfid": {userID}}
+		fmt.Printf("RFID发送：%v\n", rfid)
+		sendData("RFID", id, rfid) //发送数据给服务器
+	}
 }
 
 //等待rfid上报数据

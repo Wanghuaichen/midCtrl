@@ -1,9 +1,11 @@
 package devices
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"strconv"
 	"time"
 )
@@ -19,7 +21,8 @@ import (
 
 var hjAddr uint8
 var huanJingPeriod = 20 * time.Second
-var reqHuanJingTicker = time.NewTicker(huanJingPeriod) //请求环境数据周期
+
+//var reqHuanJingTicker = time.NewTicker(huanJingPeriod) //请求环境数据周期
 type realtimeDataType struct {
 	ch [16]uint16
 	sw [32]uint8
@@ -36,6 +39,7 @@ func (r realtimeDataType) toServData() map[string][]string {
 	result["db"] = []string{strconv.FormatInt(int64(transData(r.ch[1]))*1000, 10)}          //分贝
 	return result
 }
+
 func (r *realtimeDataType) setRealData(dat []byte) (err error) {
 	if len(dat) != 0x40 {
 		return errors.New("数据长度不正确")
@@ -68,38 +72,100 @@ func doubleByteToUint16(d []byte) uint16 {
 
 //启动定时获取实时数据
 
-func huanjingInitAutoGet() {
+/*func huanjingInitAutoGet() {
 	go func() {
-		for _ = range reqHuanJingTicker.C {
 			for _, id := range devTypeTable["环境"] {
 				huanJingRealData(id)
 			}
-		}
 	}()
-}
+}*/
 
 // 获取环境监测设备的实时数据
-func huanJingRealData(id uint) {
-	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8
-	dat, err := reqDevData(id, cmd, nil, checkModbusCRC16)
-	if err != nil {
-		log.Printf("获取环境监测实时数据失败:%s\n", err.Error())
+func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int) {
+	if conn == nil {
 		return
 	}
-	if dat[3] != 0x40 { //固定数据长度
-		log.Printf("获取环境监测实时数据格式不正确:%v\n", dat)
-		return
+	var tempBuff []byte
+	buff := make([]byte, 1024)
+HJ_GO_ON_READ:
+	for {
+		n, err := conn.Read(buff)
+		//log.Printf("读到：%x \n", buff[:n])
+		if err != nil {
+			panic(err.Error())
+		}
+		tempBuff = append(tempBuff, buff[:n]...)
+		//log.Printf("当前数据：%x \n", tempBuff)
+		for {
+			index := bytes.Index(tempBuff, datHead)
+			if index == -1 {
+				//log.Printf("在 %x 中位找不到数据头：%x\n", tempBuff, datHead)
+				continue HJ_GO_ON_READ //继续读数据
+			}
+			if len(tempBuff[index:]) < datLen { //未取得完整数据
+				//log.Printf("数据不完整 %x\n", tempBuff)
+				continue HJ_GO_ON_READ //继续读数据
+			}
+
+			rCh <- tempBuff[index : index+datLen]
+			tempBuff = tempBuff[index+datLen:]
+		}
 	}
-	var realData realtimeDataType
-	//err = binary.Read(bytes.NewReader(dat[4:68]), binary.LittleEndian, realData) //0x48个字节
-	err = realData.setRealData(dat[4:68])
-	if err != nil {
-		log.Printf("环境数据转换失败：%s\n", err.Error())
-		return
-	}
-	fmt.Printf("环境实时数据：%v\n", realData.toServData())
-	sendData("环境", id, realData.toServData())
 }
+
+func huanJingStart(id uint) {
+	conn := getConn(id)
+	if conn == nil {
+		return
+	}
+	defer func() {
+		conn.Close() //关闭连接
+		if err := recover(); err != nil {
+			log.Printf("环境监测处理发生错误：%s\n", err)
+		}
+		//设置设备状态
+	}()
+	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8  //获取实时环境命令
+	rCh := make(chan []byte)
+	wCh := make(chan []byte)
+	go sendCmd(conn, wCh)
+	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2)
+	for {
+		wCh <- cmd
+		dat := <-rCh
+		if !checkModbusCRC16(dat) {
+			log.Printf("环境数据校验失败：%s\n", dat)
+			continue
+		}
+		var realData realtimeDataType
+		//err = binary.Read(bytes.NewReader(dat[4:68]), binary.LittleEndian, realData) //0x48个字节
+		err := realData.setRealData(dat[4 : 0x40+4])
+		if err != nil {
+			log.Printf("环境数据转换失败：%s\n", err.Error())
+			continue
+		}
+		fmt.Printf("环境实时数据：%v\n", realData.toServData())
+		sendData("环境", id, realData.toServData())
+		time.Sleep(huanJingPeriod)
+	}
+}
+
+// 给设备发生命令
+func sendCmd(conn net.Conn, ch <-chan []byte) {
+	for {
+		cmd := <-ch
+		//log.Printf("向设备发送:%v\n", cmd)
+		n, err := conn.Write(cmd)
+		if err != nil {
+			panic(err.Error())
+		}
+		if n != len(cmd) {
+			continue
+		}
+	}
+}
+
+// 将无符号数转为有符号数
 func transData(dat uint16) int16 {
 	if 0x8000&dat == 0x8000 { //dat 最高为1
 		dat = dat & 0x7FFF

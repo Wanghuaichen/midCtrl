@@ -17,12 +17,42 @@ import (
 //使用RTU  ph四位精度0.001  温度只有一位没有小数精度？  共11字节
 var wuShuiPeriod = 20 * time.Second
 
-func wuShuiAutoGet() {
-	go readWS()
-	log.Println("污水开始获取数据")
+func wuShuiStart(id uint) {
+	conn := getConn(id)
+	if conn == nil {
+		return
+	}
+	defer func() {
+		conn.Close() //关闭连接
+		if err := recover(); err != nil {
+			log.Printf("污水监测处理发生错误：%s\n", err)
+		}
+		//设置设备状态
+	}()
+	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8} //获取污水命令
+	rCh := make(chan []byte)
+	wCh := make(chan []byte)
+	var temperature int
+	var ph int
+	go sendCmd(conn, wCh)
+	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2)
+	for {
+		wCh <- cmd
+		dat := <-rCh
+		if !checkModbusCRC16(dat) {
+			log.Printf("污水数据校验失败：%s\n", dat)
+			continue
+		}
+		ph = int(int(dat[3])*0x100+int(dat[4])) * 100
+		temperature = int(int(dat[5])*0x100+int(dat[6])) * 1000
+		serData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperature": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {"0"}}
+		fmt.Printf("污水发送：%v\n", serData)
+		sendData("污水", id, serData)
+		time.Sleep(wuShuiPeriod)
+	}
 }
 
-func readWS() {
+/* func readWS() {
 	for {
 		for _, id := range devTypeTable["污水"] {
 			//构造要发送的数据，计算CRC
@@ -51,7 +81,7 @@ func readWS() {
 	}
 
 }
-
+*/
 /* CRC 高位字节值表 */
 var auchCRCHi = [...]byte{
 	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
