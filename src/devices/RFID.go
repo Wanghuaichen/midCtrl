@@ -58,17 +58,19 @@ func rfidStart(id uint) {
 	}
 	defer func() {
 		conn.Close() //关闭连接
-		if err := recover(); err != nil {
-			log.Printf("RFID监测处理发生错误：%s\n", err)
-		}
+		log.Printf("RFID监测处理发生错误\n")
 		//设置设备状态
 	}()
 
 	rCh := make(chan []byte)
-	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17)
+	stataCh := make(chan bool)
+	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)
 	for {
+		if !checkState(stataCh) {
+			return
+		}
 		dat := <-rCh
-		fmt.Printf("RFID:%v\n", dat)
+		//fmt.Printf("RFID:%v\n", dat)
 		userID := bytesToString(dat[4:16])
 		rfid := url.Values{"rfid": {userID}}
 		fmt.Printf("RFID发送：%v\n", rfid)

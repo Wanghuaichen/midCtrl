@@ -80,8 +80,21 @@ func doubleByteToUint16(d []byte) uint16 {
 	}()
 }*/
 
+func checkState(stataCh <-chan bool) bool {
+	select {
+	case <-stataCh: //读到读写进程的状态则返回错误
+		//log.Printf("状态异常")
+		return false
+	default:
+		return true
+	}
+}
+
 // 获取环境监测设备的实时数据
-func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int) {
+func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int, stataCh chan<- bool) {
+	defer func() {
+		stataCh <- false //发生错误退出时，通知处理协程处理
+	}()
 	if conn == nil {
 		return
 	}
@@ -92,7 +105,9 @@ HJ_GO_ON_READ:
 		n, err := conn.Read(buff)
 		//log.Printf("读到：%x \n", buff[:n])
 		if err != nil {
-			panic(err.Error())
+			//panic(err.Error())
+			log.Printf("读数据错误：%s\n", err.Error())
+			return
 		}
 		tempBuff = append(tempBuff, buff[:n]...)
 		//log.Printf("当前数据：%x \n", tempBuff)
@@ -119,19 +134,21 @@ func huanJingStart(id uint) {
 		return
 	}
 	defer func() {
-		conn.Close() //关闭连接
-		if err := recover(); err != nil {
-			log.Printf("环境监测处理发生错误：%s\n", err)
-		}
+		conn.Close()
+		log.Printf("环境监测处理发生错误\n")
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8  //获取实时环境命令
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
-	go sendCmd(conn, wCh)
-	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2)
+	stataCh := make(chan bool)
+	go sendCmd(conn, wCh, stataCh)
+	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2, stataCh)
 	for {
 		wCh <- cmd
+		if !checkState(stataCh) {
+			return
+		}
 		dat := <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("环境数据校验失败：%s\n", dat)
@@ -151,13 +168,18 @@ func huanJingStart(id uint) {
 }
 
 // 给设备发生命令
-func sendCmd(conn net.Conn, ch <-chan []byte) {
+func sendCmd(conn net.Conn, ch <-chan []byte, stataCh chan<- bool) {
+	defer func() {
+		stataCh <- false //发生错误退出时，通知处理协程处理
+	}()
 	for {
 		cmd := <-ch
 		//log.Printf("向设备发送:%v\n", cmd)
 		n, err := conn.Write(cmd)
 		if err != nil {
-			panic(err.Error())
+			//panic(err.Error())
+			log.Printf("写数据错误：%s\n", err.Error())
+			return
 		}
 		if n != len(cmd) {
 			continue

@@ -49,19 +49,21 @@ func shuiBiaoStart(id uint) {
 	}
 	defer func() {
 		conn.Close() //关闭连接
-		if err := recover(); err != nil {
-			log.Printf("水表监测处理发生错误：%s\n", err)
-		}
+		log.Printf("水表监测处理发生错误\n")
 		//设置设备状态
 	}()
 	cmd := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16} //获取水表数据命令
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
-	go sendCmd(conn, wCh)
+	stataCh := make(chan bool)
+	go sendCmd(conn, wCh, stataCh)
 	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
-	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37)
+	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37, stataCh)
 	for {
 		wCh <- cmd
+		if !checkState(stataCh) {
+			return
+		}
 		dat := <-rCh
 		zongLeiJi := getShuiLiang(dat[16:20])
 		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}

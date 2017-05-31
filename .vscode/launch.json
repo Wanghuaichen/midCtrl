@@ -10,7 +10,7 @@
             "port": 2345,
             "host": "127.0.0.1",
             "program": "${fileDirname}",
-            "env": {},
+            "env": { "GOPATH":"E:/golang_project/midCtrl"},
             "args": [],
             "showLog": true
         }

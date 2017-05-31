@@ -24,9 +24,7 @@ func wuShuiStart(id uint) {
 	}
 	defer func() {
 		conn.Close() //关闭连接
-		if err := recover(); err != nil {
-			log.Printf("污水监测处理发生错误：%s\n", err)
-		}
+		log.Printf("污水监测处理发生错误\n")
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8} //获取污水命令
@@ -34,10 +32,14 @@ func wuShuiStart(id uint) {
 	wCh := make(chan []byte)
 	var temperature int
 	var ph int
-	go sendCmd(conn, wCh)
-	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2)
+	stataCh := make(chan bool)
+	go sendCmd(conn, wCh, stataCh)
+	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	for {
 		wCh <- cmd
+		if !checkState(stataCh) {
+			return
+		}
 		dat := <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("污水数据校验失败：%s\n", dat)

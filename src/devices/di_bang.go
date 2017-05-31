@@ -35,17 +35,20 @@ func diBangD39Start(id uint) {
 	}
 	defer func() {
 		conn.Close() //关闭连接
-		if err := recover(); err != nil {
-			log.Printf("地磅监测处理发生错误：%s\n", err)
-		}
+		log.Printf("地磅监测处理发生错误\n")
+
 		//设置设备状态
 	}()
 
 	rCh := make(chan []byte)
 	var strPre []byte //上次数据
 	strConuter := 0
-	go readOneData(conn, rCh, []byte{'='}, 9)
+	stataCh := make(chan bool)
+	go readOneData(conn, rCh, []byte{'='}, 9, stataCh)
 	for {
+		if !checkState(stataCh) {
+			return
+		}
 		dat := <-rCh
 		//log.Printf("地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
