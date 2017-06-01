@@ -66,10 +66,16 @@ func rfidStart(id uint) {
 	stataCh := make(chan bool)
 	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)
 	for {
-		if !checkState(stataCh) {
-			return
+		var dat []byte
+		var state bool
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat := <-rCh
 		//fmt.Printf("RFID:%v\n", dat)
 		userID := bytesToString(dat[4:16])
 		rfid := url.Values{"rfid": {userID}}

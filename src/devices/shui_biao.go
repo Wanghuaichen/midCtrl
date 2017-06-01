@@ -60,11 +60,17 @@ func shuiBiaoStart(id uint) {
 	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
 	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37, stataCh)
 	for {
+		var dat []byte
+		var state bool
 		wCh <- cmd
-		if !checkState(stataCh) {
-			return
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat := <-rCh
 		zongLeiJi := getShuiLiang(dat[16:20])
 		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
 		fmt.Printf("水表发送：%v\n", sData)

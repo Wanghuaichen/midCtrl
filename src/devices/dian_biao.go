@@ -83,13 +83,19 @@ func dianBiaoStart(id uint) {
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	//log.Printf("电表开始获取数据\n")
 	for {
+		var dat []byte
+		var state bool
 		//获取用电量
 		wCh <- cmdTotalEnergy
-		if !checkState(stataCh) {
-			return
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
 		//log.Printf("电表发送设备：%v\n", cmdTotalEnergy)
-		dat := <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("电表电量数据校验失败：%s\n", dat)
 			continue
@@ -98,10 +104,14 @@ func dianBiaoStart(id uint) {
 		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100, 10)}
 		//获取当前功率
 		wCh <- cmdPower
-		if !checkState(stataCh) {
-			return
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat = <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("电表功率数据校验失败：%s\n", dat)
 			continue

@@ -36,11 +36,17 @@ func wuShuiStart(id uint) {
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	for {
+		var dat []byte
+		var state bool
 		wCh <- cmd
-		if !checkState(stataCh) {
-			return
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat := <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("污水数据校验失败：%s\n", dat)
 			continue

@@ -145,11 +145,17 @@ func huanJingStart(id uint) {
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2, stataCh)
 	for {
+		var dat []byte
+		var state bool
 		wCh <- cmd
-		if !checkState(stataCh) {
-			return
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat := <-rCh
 		if !checkModbusCRC16(dat) {
 			log.Printf("环境数据校验失败：%s\n", dat)
 			continue

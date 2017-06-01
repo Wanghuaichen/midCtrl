@@ -46,10 +46,16 @@ func diBangD39Start(id uint) {
 	stataCh := make(chan bool)
 	go readOneData(conn, rCh, []byte{'='}, 9, stataCh)
 	for {
-		if !checkState(stataCh) {
-			return
+		var dat []byte
+		var state bool
+		select {
+		case dat = <-rCh:
+			break
+		case state = <-stataCh:
+			if false == state {
+				return
+			}
 		}
-		dat := <-rCh
 		//log.Printf("地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
 			strConuter++
