@@ -21,9 +21,9 @@ FE FE FE FE 68 10 44 33 22 11 00 33 78     81               16           1F 90 0
 回复数据的校验值不对
 读表具
 fe fe  68 10 01 00 00 05 08 00 00 01 03 90 1f 00 39 16
-FE FE  68 10 44 33 22 11 00 33 78 01 03 1F 90 00 80 16
-
-fe fe  68 10 aa aa aa aa aa aa aa 01 03 1F 90 AA 7b 16    //90和1f 可互换  AA 为序号可为00 校验为从68开始的和数据
+FE FE  68 10 44 33 22 11 00 33 78 01 03 90 1F 00 80 16
+0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16
+fe fe  68 10 aa aa aa aa aa aa aa 01 03 90 1F AA 7b 16    //90和1f 可互换  AA 为序号可为00 校验为从68开始的和数据
 */
 
 package devices
@@ -50,6 +50,7 @@ func shuiBiaoStart(id uint) {
 	defer func() {
 		conn.Close() //关闭连接
 		log.Printf("水表监测处理发生错误\n")
+		unBindConn(id)
 		//设置设备状态
 	}()
 	cmd := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16} //获取水表数据命令

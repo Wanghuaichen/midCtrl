@@ -91,7 +91,7 @@ func diBangD39(conn net.Conn) {
 		for i := index; index > 0; index-- {
 			for k := times; k > 0; k-- {
 				conn.Write([]byte(dat[i]))
-				time.Sleep(time.Millisecond * 3000)
+				time.Sleep(time.Millisecond * 300)
 			}
 		}
 	}

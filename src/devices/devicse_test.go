@@ -98,3 +98,12 @@ func TestXOR(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestDibangDataTrans(t *testing.T) {
+	dat := "=.0036100"
+	w := dibangDataTrans([]byte(dat)[1:])
+	if w != "163000000" {
+		t.Log("w=", w)
+		t.Fail()
+	}
+}

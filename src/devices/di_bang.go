@@ -1,13 +1,11 @@
 package devices
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"log"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 //d39
@@ -36,6 +34,7 @@ func diBangD39Start(id uint) {
 	defer func() {
 		conn.Close() //关闭连接
 		log.Printf("地磅监测处理发生错误\n")
+		unBindConn(id)
 
 		//设置设备状态
 	}()
@@ -60,6 +59,7 @@ func diBangD39Start(id uint) {
 		if bytes.Equal(strPre, dat) {
 			strConuter++
 			if strConuter > 5 {
+				//log.Printf("地磅数据：%s\n", dat) //=.0036100 -92233720
 				w := dibangDataTrans([]byte(dat)[1:])
 				if w != "0" {
 					urlData := url.Values{"weight": {w}}
@@ -76,6 +76,7 @@ func diBangD39Start(id uint) {
 	}
 }
 
+/*
 func hanldeD39(id uint) {
 	conn := getConn(id)
 	defer conn.Close()
@@ -122,12 +123,14 @@ func hanldeD39(id uint) {
 	}
 
 }
-
+*/
 func dibangDataTrans(dat []byte) string {
 	r := invert(dat)
+	//log.Printf("地磅数据：%s\n", dat)
 	kg, err := strconv.ParseFloat(string(r), 64)
 	if err != nil {
 		log.Printf("d39转换数据失败:%s %s\n", string(r), err.Error())
 	}
-	return strconv.FormatInt(int64(kg*1000000000000000)/100000000000, 10)
+	//log.Printf("地磅转化后数据：%f\n", kg)
+	return strconv.FormatInt(int64(kg*1000000000000)/100000000, 10) //乘大数，防止产生9999的小数
 }

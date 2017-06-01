@@ -136,6 +136,7 @@ func huanJingStart(id uint) {
 	defer func() {
 		conn.Close()
 		log.Printf("环境监测处理发生错误\n")
+		unBindConn(id)
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8  //获取实时环境命令
@@ -188,6 +189,7 @@ func sendCmd(conn net.Conn, ch <-chan []byte, stataCh chan<- bool) {
 			return
 		}
 		if n != len(cmd) {
+			//log.Printf("发送数据不完整\n")
 			continue
 		}
 	}

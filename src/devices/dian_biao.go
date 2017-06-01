@@ -71,18 +71,21 @@ func dianBiaoStart(id uint) {
 	defer func() {
 		conn.Close() //关闭连接
 		log.Printf("电表监测处理发生错误\n")
+		unBindConn(id)
 		//设置设备状态
 	}()
 	sData := url.Values{"kw": {"0"}, "pt": {"0"}, "ct": {"0"}, "record": {"0"}}
-	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09} //获取总电量命令 01 03 00 09 00 02 14 09
-	cmdPower := []byte{0x01, 0x03, 0x00, 0x00, 0x0A, 0x02, 0x14, 0x09}       //获取当前功率命令 01 03 00 0A 00 02 E4 09
+	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09} //获取总电量命令 01 03 00 09 00 02 14 09
+	//cmdPower := []byte{0x01, 0x03, 0x00, 0x0A, 0x00, 0x02, 0x14, 0x09}       //获取当前功率命令 01 03 00 0A 00 02 E4 09
+	cmdPower := []byte{0x01, 0x03, 0x00, 0x26, 0x00, 0x02, 0x25, 0xC0}       //获取当前功率命令 01 03 00 26 00 02 25 C0
+	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x30, 0x00, 0x02, 0xC4, 0x04} //获取总电量命令 01 03 00 30 00 02 C4 04
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
-	//log.Printf("电表开始获取数据\n")
 	for {
+		//log.Printf("电表开始获取数据\n")
 		var dat []byte
 		var state bool
 		//获取用电量
@@ -95,7 +98,7 @@ func dianBiaoStart(id uint) {
 				return
 			}
 		}
-		//log.Printf("电表发送设备：%v\n", cmdTotalEnergy)
+		//log.Printf("电表收到总电量数据：%v\n", dat)
 		if !checkModbusCRC16(dat) {
 			log.Printf("电表电量数据校验失败：%s\n", dat)
 			continue
@@ -112,6 +115,7 @@ func dianBiaoStart(id uint) {
 				return
 			}
 		}
+		//log.Printf("电表收到功率数据：%v\n", dat)
 		if !checkModbusCRC16(dat) {
 			log.Printf("电表功率数据校验失败：%s\n", dat)
 			continue

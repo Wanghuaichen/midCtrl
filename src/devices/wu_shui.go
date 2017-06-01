@@ -25,6 +25,7 @@ func wuShuiStart(id uint) {
 	defer func() {
 		conn.Close() //关闭连接
 		log.Printf("污水监测处理发生错误\n")
+		unBindConn(id)
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8} //获取污水命令

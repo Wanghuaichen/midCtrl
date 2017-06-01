@@ -37,7 +37,6 @@ E2 00 51 42 05 11 01 35 20 30 41 CF
 */
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/url"
@@ -59,6 +58,7 @@ func rfidStart(id uint) {
 	defer func() {
 		conn.Close() //关闭连接
 		log.Printf("RFID监测处理发生错误\n")
+		unBindConn(id)
 		//设置设备状态
 	}()
 
@@ -84,6 +84,7 @@ func rfidStart(id uint) {
 	}
 }
 
+/*
 //等待rfid上报数据
 func rfidDataHandle(id uint) {
 	conn := getConn(id)
@@ -146,7 +147,7 @@ RFID_GO_ON_READ:
 		}
 	}
 }
-
+*/
 func xorVerify(dat []byte) byte {
 	xor := byte(0x0)
 	for _, v := range dat {
