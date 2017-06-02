@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	online  = uint(0)
-	offline = uint(1)
+	offline = uint(0)
+	online  = uint(1)
 	noData  = uint(2)
 )
 
@@ -47,7 +47,7 @@ type Device struct {
 	hardwareCode string
 	//devType      string
 	conn  net.Conn
-	state uint //当前状态 0 正常  1 网络断开 2 设备不能返回数据
+	state uint //当前状态 1 正常  0 网络断开 2 设备不能返回数据
 	isOk  uint //命令执行结果
 }
 
@@ -59,9 +59,9 @@ type DevType struct {
 
 var devList = make(map[uint]*Device, 100) //设备列表
 
-var devTypeTable = make(map[string][]uint, 10)             //设备列表的类型索引，值为该类型的所有设备
-var reqDevListTicker = time.NewTicker(time.Minute * 2)     //请求列表周期
-var reportStatusTicker = time.NewTicker(time.Second * 300) //状态上报周期
+var devTypeTable = make(map[string][]uint, 10)            //设备列表的类型索引，值为该类型的所有设备
+var reqDevListTicker = time.NewTicker(time.Minute * 2)    //请求列表周期
+var reportStatusTicker = time.NewTicker(time.Second * 10) //状态上报周期
 
 /*
 TADIAO-001= 塔吊
@@ -314,7 +314,7 @@ func generateDataJSONStr(id string, action string, data string) string {
 
 func reportDevStatus() {
 	for _, dev := range devList {
-		devState := make(url.Values, 4)
+		devState := make(url.Values)
 		devState["isOk"] = []string{strconv.FormatInt(int64(dev.isOk), 10)}
 		devState["state"] = []string{strconv.FormatInt(int64(dev.state), 10)}
 		sendData("设备状态", dev.hardwareID, devState)

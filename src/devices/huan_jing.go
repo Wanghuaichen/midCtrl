@@ -20,7 +20,7 @@ import (
 */
 
 var hjAddr uint8
-var huanJingPeriod = 20 * time.Second
+var huanJingPeriod = 60 * time.Second
 
 //var reqHuanJingTicker = time.NewTicker(huanJingPeriod) //请求环境数据周期
 type realtimeDataType struct {
@@ -143,12 +143,14 @@ func huanJingStart(id uint) {
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool)
+	timeout := time.NewTimer(huanJingPeriod * 2)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2, stataCh)
 	for {
 		var dat []byte
 		var state bool
 		wCh <- cmd
+		timeout.Reset(huanJingPeriod * 2)
 		select {
 		case dat = <-rCh:
 			break
@@ -156,6 +158,9 @@ func huanJingStart(id uint) {
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("电表读数据超时重新发送读取数据\n")
+			continue
 		}
 		if !checkModbusCRC16(dat) {
 			log.Printf("环境数据校验失败：%s\n", dat)

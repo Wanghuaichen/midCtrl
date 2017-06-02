@@ -47,7 +47,7 @@ const (
 var readFormt = make([]byte, 0, 20)
 
 //string 行为，int间隔秒数
-var dianBiaoPeriod = 20 * time.Second
+var dianBiaoPeriod = 60 * time.Second
 
 //var dianBiaoSync = make(chan bool, 1)
 
@@ -82,6 +82,7 @@ func dianBiaoStart(id uint) {
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool)
+	timeout := time.NewTimer(dianBiaoPeriod * 2)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	for {
@@ -90,6 +91,7 @@ func dianBiaoStart(id uint) {
 		var state bool
 		//获取用电量
 		wCh <- cmdTotalEnergy
+		timeout.Reset(dianBiaoPeriod * 2)
 		select {
 		case dat = <-rCh:
 			break
@@ -97,6 +99,9 @@ func dianBiaoStart(id uint) {
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("电表读数据超时重新发送读取数据\n")
+			continue
 		}
 		//log.Printf("电表收到总电量数据：%v\n", dat)
 		if !checkModbusCRC16(dat) {
@@ -107,6 +112,7 @@ func dianBiaoStart(id uint) {
 		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100, 10)}
 		//获取当前功率
 		wCh <- cmdPower
+		timeout.Reset(dianBiaoPeriod * 2)
 		select {
 		case dat = <-rCh:
 			break
@@ -114,6 +120,9 @@ func dianBiaoStart(id uint) {
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("电表读数据超时重新发送读取数据\n")
+			continue
 		}
 		//log.Printf("电表收到功率数据：%v\n", dat)
 		if !checkModbusCRC16(dat) {

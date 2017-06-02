@@ -15,7 +15,7 @@ import (
 //这个协议很不明确
 //使用ascii 校验码怎么产生？ LRC校验？    共17个字节
 //使用RTU  ph四位精度0.001  温度只有一位没有小数精度？  共11字节
-var wuShuiPeriod = 20 * time.Second
+var wuShuiPeriod = 60 * time.Second
 
 func wuShuiStart(id uint) {
 	conn := getConn(id)
@@ -31,6 +31,7 @@ func wuShuiStart(id uint) {
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8} //获取污水命令
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
+	timeout := time.NewTimer(wuShuiPeriod * 2)
 	var temperature int
 	var ph int
 	stataCh := make(chan bool)
@@ -40,6 +41,7 @@ func wuShuiStart(id uint) {
 		var dat []byte
 		var state bool
 		wCh <- cmd
+		timeout.Reset(wuShuiPeriod * 2)
 		select {
 		case dat = <-rCh:
 			break
@@ -47,6 +49,9 @@ func wuShuiStart(id uint) {
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("污水读数据超时重新发送读取数据\n")
+			continue
 		}
 		if !checkModbusCRC16(dat) {
 			log.Printf("污水数据校验失败：%s\n", dat)
