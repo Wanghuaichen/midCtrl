@@ -62,7 +62,7 @@ func wuShuiStart(id uint) {
 		serData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperature": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {"0"}}
 		fmt.Printf("污水发送：%v\n", serData)
 		sendData("污水", id, serData)
-		time.Sleep(wuShuiPeriod)
+		time.Sleep(wuShuiPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }
 

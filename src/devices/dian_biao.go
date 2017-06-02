@@ -134,7 +134,7 @@ func dianBiaoStart(id uint) {
 
 		fmt.Printf("电表发送%v\n", sData)
 		sendData("电表", id, sData)
-		time.Sleep(dianBiaoPeriod)
+		time.Sleep(dianBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }
 

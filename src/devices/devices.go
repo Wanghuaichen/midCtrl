@@ -235,6 +235,9 @@ func reqDevList(url string) error {
 			log.Printf("%s不存在的类型\n", v.HardwareCode)
 			continue
 		}
+		if v.HardwareID == 3 || v.HardwareID == 8 || v.HardwareID == 15 {
+			continue //8塔吊  3 电梯 15 环境2 是通过网页获取，不需要检测
+		}
 		//列表中不存在则加入列表
 		if _, ok := devList[v.HardwareID]; !ok {
 			dev.port = v.Port

@@ -81,7 +81,7 @@ func shuiBiaoStart(id uint) {
 		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
 		fmt.Printf("水表发送：%v\n", sData)
 		sendData("水表", id, sData)
-		time.Sleep(shuiBiaoPeriod)
+		time.Sleep(shuiBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }
 

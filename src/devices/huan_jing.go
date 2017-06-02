@@ -100,7 +100,7 @@ func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int, s
 	}
 	var tempBuff []byte
 	buff := make([]byte, 1024)
-HJ_GO_ON_READ:
+
 	for {
 		n, err := conn.Read(buff)
 		//log.Printf("读到：%x \n", buff[:n])
@@ -111,20 +111,19 @@ HJ_GO_ON_READ:
 		}
 		tempBuff = append(tempBuff, buff[:n]...)
 		//log.Printf("当前数据：%x \n", tempBuff)
-		for {
-			index := bytes.Index(tempBuff, datHead)
-			if index == -1 {
-				//log.Printf("在 %x 中位找不到数据头：%x\n", tempBuff, datHead)
-				continue HJ_GO_ON_READ //继续读数据
-			}
-			if len(tempBuff[index:]) < datLen { //未取得完整数据
-				//log.Printf("数据不完整 %x\n", tempBuff)
-				continue HJ_GO_ON_READ //继续读数据
-			}
 
-			rCh <- tempBuff[index : index+datLen]
-			tempBuff = tempBuff[index+datLen:]
+		index := bytes.Index(tempBuff, datHead)
+		if index == -1 {
+			//log.Printf("在 %x 中位找不到数据头：%x\n", tempBuff, datHead)
+			continue //继续读数据
 		}
+		if len(tempBuff[index:]) < datLen { //未取得完整数据
+			//log.Printf("数据不完整 %x\n", tempBuff)
+			continue //继续读数据
+		}
+
+		rCh <- tempBuff[index : index+datLen]
+		tempBuff = tempBuff[index+datLen:]
 	}
 }
 
@@ -175,7 +174,7 @@ func huanJingStart(id uint) {
 		}
 		fmt.Printf("环境实时数据：%v\n", realData.toServData())
 		sendData("环境", id, realData.toServData())
-		time.Sleep(huanJingPeriod)
+		time.Sleep(huanJingPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }
 
