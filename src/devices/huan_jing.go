@@ -142,7 +142,7 @@ func huanJingStart(id uint) {
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8  //获取实时环境命令
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(huanJingPeriod * 2)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2, stataCh)

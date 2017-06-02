@@ -42,7 +42,7 @@ func diBangD39Start(id uint) {
 	rCh := make(chan []byte)
 	var strPre []byte //上次数据
 	strConuter := 0
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	go readOneData(conn, rCh, []byte{'='}, 9, stataCh)
 	for {
 		var dat []byte

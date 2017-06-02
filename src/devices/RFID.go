@@ -63,7 +63,7 @@ func rfidStart(id uint) {
 	}()
 
 	rCh := make(chan []byte)
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)
 	for {
 		var dat []byte

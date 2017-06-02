@@ -81,7 +81,7 @@ func dianBiaoStart(id uint) {
 	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x30, 0x00, 0x02, 0xC4, 0x04} //获取总电量命令 01 03 00 30 00 02 C4 04
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(dianBiaoPeriod * 2)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)

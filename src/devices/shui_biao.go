@@ -56,7 +56,7 @@ func shuiBiaoStart(id uint) {
 	cmd := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16} //获取水表数据命令
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(shuiBiaoPeriod * 2)
 	go sendCmd(conn, wCh, stataCh)
 	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16

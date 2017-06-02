@@ -34,7 +34,7 @@ func wuShuiStart(id uint) {
 	timeout := time.NewTimer(wuShuiPeriod * 2)
 	var temperature int
 	var ph int
-	stataCh := make(chan bool)
+	stataCh := make(chan bool, 1)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	for {
