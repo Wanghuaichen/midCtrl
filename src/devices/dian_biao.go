@@ -31,11 +31,11 @@ Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * Unit
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -68,8 +68,13 @@ func dianBiaoStart(id uint) {
 	if conn == nil {
 		return
 	}
+	f, err := os.OpenFile("dainbiaoData.dat", os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return
+	}
 	defer func() {
 		conn.Close() //关闭连接
+		f.Close()
 		log.Printf("电表监测处理发生错误\n")
 		unBindConn(id)
 		//设置设备状态
@@ -80,22 +85,24 @@ func dianBiaoStart(id uint) {
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09} //获取总电量命令 01 03 00 09 00 02 14 09
 	//cmdPower := []byte{0x01, 0x03, 0x00, 0x0A, 0x00, 0x02, 0x14, 0x09}       //获取当前功率命令 01 03 00 0A 00 02 E4 09
 	//cmdPower := []byte{0x01, 0x03, 0x00, 0x26, 0x00, 0x02, 0x25, 0xC0} //获取当前功率命令 01 03 00 26 00 02 25 C0
-	cmdPower := []byte{0x01, 0x03, 0x00, 0x66, 0x00, 0x02, 0x24, 0x14} //获取当前功率命令 01 03 00 66 00 02 24 14
+	//cmdPower := []byte{0x01, 0x03, 0x00, 0x66, 0x00, 0x02, 0x24, 0x14} //获取当前功率命令 01 03 00 66 00 02 24 14
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x30, 0x00, 0x02, 0xC4, 0x04} //获取总电量命令 01 03 00 30 00 02 C4 04
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x40, 0x00, 0x02, 0xC5, 0xDF} //获取总电量命令 01 03 00 40 00 02 C5 DF
-	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x56, 0x00, 0x02, 0x24, 0x1B} //获取总电量命令 01 03 00 56 00 02 24 1B
+	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x56, 0x00, 0x02, 0x24, 0x1B} //获取总电量命令 01 03 00 56 00 02 24 1B
+	cmdAllData := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x7F, 0x04, 0x2A} //获取电表所有数据01 03 00 00 00 7F 04 2A
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(dianBiaoPeriod * 2)
+	tempData := make([]byte, 10)
 	go sendCmd(conn, wCh, stataCh)
-	go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
+	//go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
+	go readOneData(conn, rCh, []byte{0x01, 0x03, 0xFE}, 3+254+2, stataCh)
 	for {
-		//log.Printf("电表开始获取数据\n")
 		var dat []byte
 		var state bool
 		//获取用电量
-		wCh <- cmdTotalEnergy
+		wCh <- cmdAllData
 		timeout.Reset(dianBiaoPeriod * 2)
 		select {
 		case dat = <-rCh:
@@ -108,36 +115,61 @@ func dianBiaoStart(id uint) {
 			log.Printf("电表读数据超时重新发送读取数据\n")
 			continue
 		}
-		//log.Printf("电表收到总电量数据：%v\n", dat)
-		if !checkModbusCRC16(dat) {
-			log.Printf("电表电量数据校验失败：%s\n", dat)
-			continue
-		}
-		totalEnergy := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+		f.Write(dat)
+		f.Write(tempData) //填充10个0
+		totalEnergy := uint32(dat[172+5])*0x1000000 + uint32(dat[172+6])*0x10000 + uint32(dat[172+3])*0x100 + uint32(dat[172+4])
 		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100*pt*ct, 10)}
-		//获取当前功率
-		wCh <- cmdPower
-		timeout.Reset(dianBiaoPeriod * 2)
-		select {
-		case dat = <-rCh:
-			break
-		case state = <-stataCh:
-			if false == state {
-				return
-			}
-		case <-timeout.C:
-			log.Printf("电表读数据超时重新发送读取数据\n")
-			continue
-		}
-		//log.Printf("电表收到功率数据：%v\n", dat)
-		if !checkModbusCRC16(dat) {
-			log.Printf("电表功率数据校验失败：%s\n", dat)
-			continue
-		}
-		power := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+		power := uint32(dat[204+5])*0x1000000 + uint32(dat[204+6])*0x10000 + uint32(dat[204+3])*0x100 + uint32(dat[204+4])
 		sData["kw"] = []string{strconv.FormatInt(int64(power)*10000*pt*ct, 10)}
+		/*
+			//log.Printf("电表开始获取数据\n")
+			var dat []byte
+			var state bool
+			//获取用电量
+			wCh <- cmdTotalEnergy
+			timeout.Reset(dianBiaoPeriod * 2)
+			select {
+			case dat = <-rCh:
+				break
+			case state = <-stataCh:
+				if false == state {
+					return
+				}
+			case <-timeout.C:
+				log.Printf("电表读数据超时重新发送读取数据\n")
+				continue
+			}
+			//log.Printf("电表收到总电量数据：%v\n", dat)
+			if !checkModbusCRC16(dat) {
+				log.Printf("电表电量数据校验失败：%s\n", dat)
+				continue
+			}
+			totalEnergy := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+			sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100*pt*ct, 10)}
+			//获取当前功率
+			wCh <- cmdPower
+			timeout.Reset(dianBiaoPeriod * 2)
+			select {
+			case dat = <-rCh:
+				break
+			case state = <-stataCh:
+				if false == state {
+					return
+				}
+			case <-timeout.C:
+				log.Printf("电表读数据超时重新发送读取数据\n")
+				continue
+			}
+			//log.Printf("电表收到功率数据：%v\n", dat)
+			if !checkModbusCRC16(dat) {
+				log.Printf("电表功率数据校验失败：%s\n", dat)
+				continue
+			}
+			power := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
+			sData["kw"] = []string{strconv.FormatInt(int64(power)*10000*pt*ct, 10)}
 
-		fmt.Printf("电表发送%v\n", sData)
+			//fmt.Printf("电表发送%v\n", sData)
+		*/
 		sendData("电表", id, sData)
 		time.Sleep(dianBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
