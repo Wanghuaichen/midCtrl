@@ -74,12 +74,16 @@ func dianBiaoStart(id uint) {
 		unBindConn(id)
 		//设置设备状态
 	}()
-	sData := url.Values{"kw": {"0"}, "pt": {"0"}, "ct": {"0"}, "record": {"0"}}
+	pt := int64(1)
+	ct := int64(60)
+	sData := url.Values{"kw": {"0"}, "pt": {"1"}, "ct": {"60"}, "record": {"0"}}
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x09, 0x00, 0x02, 0x14, 0x09} //获取总电量命令 01 03 00 09 00 02 14 09
 	//cmdPower := []byte{0x01, 0x03, 0x00, 0x0A, 0x00, 0x02, 0x14, 0x09}       //获取当前功率命令 01 03 00 0A 00 02 E4 09
-	cmdPower := []byte{0x01, 0x03, 0x00, 0x26, 0x00, 0x02, 0x25, 0xC0} //获取当前功率命令 01 03 00 26 00 02 25 C0
+	//cmdPower := []byte{0x01, 0x03, 0x00, 0x26, 0x00, 0x02, 0x25, 0xC0} //获取当前功率命令 01 03 00 26 00 02 25 C0
+	cmdPower := []byte{0x01, 0x03, 0x00, 0x66, 0x00, 0x02, 0x24, 0x14} //获取当前功率命令 01 03 00 66 00 02 24 14
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x30, 0x00, 0x02, 0xC4, 0x04} //获取总电量命令 01 03 00 30 00 02 C4 04
-	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x40, 0x00, 0x02, 0xC5, 0xDF} //获取总电量命令 01 03 00 40 00 02 C5 DF
+	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x40, 0x00, 0x02, 0xC5, 0xDF} //获取总电量命令 01 03 00 40 00 02 C5 DF
+	cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x56, 0x00, 0x02, 0x24, 0x1B} //获取总电量命令 01 03 00 56 00 02 24 1B
 	rCh := make(chan []byte)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
@@ -110,7 +114,7 @@ func dianBiaoStart(id uint) {
 			continue
 		}
 		totalEnergy := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
-		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100, 10)}
+		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100*pt*ct, 10)}
 		//获取当前功率
 		wCh <- cmdPower
 		timeout.Reset(dianBiaoPeriod * 2)
@@ -131,7 +135,7 @@ func dianBiaoStart(id uint) {
 			continue
 		}
 		power := uint32(dat[5])*0x1000000 + uint32(dat[6])*0x10000 + uint32(dat[3])*0x100 + uint32(dat[4])
-		sData["kw"] = []string{strconv.FormatInt(int64(power)*10, 10)}
+		sData["kw"] = []string{strconv.FormatInt(int64(power)*10000*pt*ct, 10)}
 
 		fmt.Printf("电表发送%v\n", sData)
 		sendData("电表", id, sData)
