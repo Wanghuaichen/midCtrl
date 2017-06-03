@@ -329,7 +329,7 @@ func sendData(urlStr string, id uint, data url.Values) {
 	msg.HdID = id
 	msg.Data = data
 	msg.URLStr = urlStr
-	//log.Printf("发送%s:%v\n", urlStr, data)
+	log.Printf("发送%s:%v\n", urlStr, msg)
 	//fmt.Printf("发送%s:%v\n", urlStr, data)
 	comm.SendMsg(msg)
 }

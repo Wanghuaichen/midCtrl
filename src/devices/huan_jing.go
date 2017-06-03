@@ -3,7 +3,6 @@ package devices
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -172,7 +171,7 @@ func huanJingStart(id uint) {
 			log.Printf("环境数据转换失败：%s\n", err.Error())
 			continue
 		}
-		fmt.Printf("环境实时数据：%v\n", realData.toServData())
+		//fmt.Printf("环境实时数据：%v\n", realData.toServData())
 		sendData("环境", id, realData.toServData())
 		time.Sleep(huanJingPeriod + time.Duration(time.Now().Unix()%10))
 	}

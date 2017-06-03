@@ -1,7 +1,6 @@
 package devices
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -60,7 +59,7 @@ func wuShuiStart(id uint) {
 		ph = int(int(dat[3])*0x100+int(dat[4])) * 100
 		temperature = int(int(dat[5])*0x100+int(dat[6])) * 1000
 		serData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperature": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {"0"}}
-		fmt.Printf("污水发送：%v\n", serData)
+		//fmt.Printf("污水发送：%v\n", serData)
 		sendData("污水", id, serData)
 		time.Sleep(wuShuiPeriod + time.Duration(time.Now().Unix()%10))
 	}

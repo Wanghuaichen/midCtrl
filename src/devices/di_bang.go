@@ -2,7 +2,6 @@ package devices
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -63,7 +62,7 @@ func diBangD39Start(id uint) {
 				w := dibangDataTrans([]byte(dat)[1:])
 				if w != "0" {
 					urlData := url.Values{"weight": {w}}
-					fmt.Printf("地磅发送数据:%v\n", urlData)
+					//fmt.Printf("地磅发送数据:%v\n", urlData)
 					sendData("地磅", id, urlData)
 				}
 				strConuter = 0 //重新计数

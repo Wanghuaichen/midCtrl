@@ -37,7 +37,6 @@ E2 00 51 42 05 11 01 35 20 30 41 CF
 */
 
 import (
-	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -79,7 +78,7 @@ func rfidStart(id uint) {
 		//fmt.Printf("RFID:%v\n", dat)
 		userID := bytesToString(dat[4:16])
 		rfid := url.Values{"rfid": {userID}}
-		fmt.Printf("RFID发送：%v\n", rfid)
+		//fmt.Printf("RFID发送：%v\n", rfid)
 		sendData("RFID", id, rfid) //发送数据给服务器
 	}
 }

@@ -29,7 +29,6 @@ fe fe  68 10 aa aa aa aa aa aa aa 01 03 90 1F AA 7b 16    //90和1f 可互换  A
 package devices
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"strconv"
@@ -79,7 +78,7 @@ func shuiBiaoStart(id uint) {
 		}
 		zongLeiJi := getShuiLiang(dat[16:20])
 		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
-		fmt.Printf("水表发送：%v\n", sData)
+		//fmt.Printf("水表发送：%v\n", sData)
 		sendData("水表", id, sData)
 		time.Sleep(shuiBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
