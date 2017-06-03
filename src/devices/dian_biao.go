@@ -68,8 +68,9 @@ func dianBiaoStart(id uint) {
 	if conn == nil {
 		return
 	}
-	f, err := os.OpenFile("dainbiaoData.dat", os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile("dainbiaoData.dat", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
+		log.Printf("打开文件失败：%s\n", err.Error())
 		return
 	}
 	defer func() {

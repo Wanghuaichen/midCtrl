@@ -109,7 +109,7 @@ func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int, s
 			return
 		}
 		tempBuff = append(tempBuff, buff[:n]...)
-		//log.Printf("当前数据：%x \n", tempBuff)
+		log.Printf("当前数据：%x \n", tempBuff)
 
 		index := bytes.Index(tempBuff, datHead)
 		if index == -1 {
@@ -184,7 +184,7 @@ func sendCmd(conn net.Conn, ch <-chan []byte, stataCh chan<- bool) {
 	}()
 	for {
 		cmd := <-ch
-		//log.Printf("向设备发送:%v\n", cmd)
+		log.Printf("向设备发送:%v\n", cmd)
 		n, err := conn.Write(cmd)
 		if err != nil {
 			//panic(err.Error())
