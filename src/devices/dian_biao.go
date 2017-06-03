@@ -96,7 +96,6 @@ func dianBiaoStart(id uint) {
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(dianBiaoPeriod * 2)
-	tempData := make([]byte, 10)
 	go sendCmd(conn, wCh, stataCh)
 	//go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0xFE}, 3+254+2, stataCh)
