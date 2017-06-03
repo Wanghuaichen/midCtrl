@@ -31,6 +31,7 @@ Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * Unit
 
 import (
 	"errors"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -68,14 +69,14 @@ func dianBiaoStart(id uint) {
 	if conn == nil {
 		return
 	}
-	f, err := os.OpenFile("dainbiaoData.dat", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+	/*f, err := os.OpenFile("dainbiaoData.dat", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		log.Printf("打开文件失败：%s\n", err.Error())
 		return
-	}
+	}*/
 	defer func() {
 		conn.Close() //关闭连接
-		f.Close()
+		//f.Close()
 		log.Printf("电表监测处理发生错误\n")
 		unBindConn(id)
 		//设置设备状态
@@ -116,8 +117,12 @@ func dianBiaoStart(id uint) {
 			log.Printf("电表读数据超时重新发送读取数据\n")
 			continue
 		}
-		f.Write(dat)
-		f.Write(tempData) //填充10个0
+		if !checkModbusCRC16(dat) {
+			log.Printf("电表电量数据校验失败：%s\n", dat)
+			continue
+		}
+		fileName := strconv.FormatInt(time.Now().Unix(), 10) + ".dat"
+		ioutil.WriteFile("dianbiao/"+fileName, dat, os.FileMode(0666))
 		totalEnergy := uint32(dat[172+5])*0x1000000 + uint32(dat[172+6])*0x10000 + uint32(dat[172+3])*0x100 + uint32(dat[172+4])
 		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100*pt*ct, 10)}
 		power := uint32(dat[204+5])*0x1000000 + uint32(dat[204+6])*0x10000 + uint32(dat[204+3])*0x100 + uint32(dat[204+4])
