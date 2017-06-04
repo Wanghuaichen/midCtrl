@@ -222,7 +222,7 @@ func reqDevList(url string) error {
 		return err
 	}
 
-	fmt.Println(reqDevListData)
+	//fmt.Println(reqDevListData)
 	if reqDevListData.Code != 200 {
 		log.Printf("服务器错误\n")
 		err := errors.New("服务器错误")

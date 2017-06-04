@@ -35,7 +35,7 @@ import (
 	"time"
 )
 
-var shuiBiaoPeriod = 60 * time.Second
+var shuiBiaoPeriod = 180 * time.Second
 
 /*func shuiBiaoAutoGet() {
 	go readSB()

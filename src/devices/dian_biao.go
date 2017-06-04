@@ -31,12 +31,10 @@ Data = (Y3 * 16,777,216 + Y4 * 65,536 + Y1 * 256 + Y2) * Unit
 
 import (
 	"errors"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 )
@@ -48,7 +46,7 @@ const (
 var readFormt = make([]byte, 0, 20)
 
 //string 行为，int间隔秒数
-var dianBiaoPeriod = 60 * time.Second
+var dianBiaoPeriod = 180 * time.Second
 
 //var dianBiaoSync = make(chan bool, 1)
 
@@ -120,8 +118,8 @@ func dianBiaoStart(id uint) {
 			log.Printf("电表电量数据校验失败：%s\n", dat)
 			continue
 		}
-		fileName := strconv.FormatInt(time.Now().Unix(), 10) + ".dat"
-		ioutil.WriteFile("dianbiao/"+fileName, dat, os.FileMode(0666))
+		//fileName := strconv.FormatInt(time.Now().Unix(), 10) + ".dat"
+		//ioutil.WriteFile("dianbiao/"+fileName, dat, os.FileMode(0666))
 		totalEnergy := uint32(dat[172+5])*0x1000000 + uint32(dat[172+6])*0x10000 + uint32(dat[172+3])*0x100 + uint32(dat[172+4])
 		sData["record"] = []string{strconv.FormatInt(int64(totalEnergy)*100*pt*ct, 10)}
 		power := uint32(dat[204+5])*0x1000000 + uint32(dat[204+6])*0x10000 + uint32(dat[204+3])*0x100 + uint32(dat[204+4])
