@@ -47,6 +47,8 @@ func connServ(addr string) {
 		go diBangD39(conn)
 	case "10601": //污水
 		go wushui(conn)
+	case "10602": //污水
+		go wushui(conn)
 	case "10701": //环境
 		go huanjing(conn)
 	case "10801": //塔吊
@@ -59,9 +61,11 @@ func connServ(addr string) {
 func rfid(conn net.Conn) {
 	log.Println("RFID开始发送数据")
 	rfidData := []string{
-		"7F000D60E2005142051101390180F1B6FD",
-		"7F000D60E2005142051101381650686D35",
-		"7F000D60E20051420511013814707DF735",
+		"7F000D60E2005120370D011520004783FD",
+		"7F000D60E2005120370D01132000478235",
+		"7F000D60E2005120370D01122000477A35",
+		"7F000D60E2005120370D01112000478135",
+		"7F000D60E2005120370D01102000477935",
 	}
 	len := len(rfidData)
 	for {
