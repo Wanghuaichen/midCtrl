@@ -35,7 +35,7 @@ func recvData(conn net.Conn) {
 			log.Println("读取数据失败", err.Error())
 			return
 		}
-		fmt.Printf("读到的数据:%v\n", data[:n])
+		fmt.Printf("读到的数据:%x\n", data[:n])
 	}
 
 }
