@@ -102,7 +102,7 @@ func readOneData(conn net.Conn, rCh chan<- []byte, datHead []byte, datLen int, s
 
 	for {
 		n, err := conn.Read(buff)
-		log.Printf("%v读到：%x \n", conn, buff[:n])
+		//log.Printf("%v读到：%x \n", conn, buff[:n])
 		if err != nil {
 			//panic(err.Error())
 			log.Printf("读数据错误：%s\n", err.Error())
