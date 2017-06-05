@@ -45,7 +45,7 @@ func main() {
 		}
 	}()
 	fmt.Println("Service Start!!!")
-	l, err := net.Listen("tcp", ":7010")
+	l, err := net.Listen("tcp", ":10103")
 	if err != nil {
 		log.Fatalln("监听7010失败", err.Error())
 	}
@@ -55,7 +55,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("建立连接失败", err.Error())
 		}
-		go sendData(conn)
+		//go sendData(conn)
 		go recvData(conn)
 	}
 }
