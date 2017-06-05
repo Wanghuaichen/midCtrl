@@ -293,15 +293,15 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		case "塔吊":
 			//taDiaoStart(hardwareID)
 		case "地磅":
-			diBangD39Start(hardwareID)
+			go diBangD39Start(hardwareID)
 		case "RFID":
-			rfidStart(hardwareID)
+			go rfidStart(hardwareID)
 		case "环境":
-			huanJingStart(hardwareID)
+			go huanJingStart(hardwareID)
 		case "污水":
-			wuShuiStart(hardwareID)
+			go wuShuiStart(hardwareID)
 		case "水表":
-			shuiBiaoStart(hardwareID)
+			go shuiBiaoStart(hardwareID)
 		case "电表":
 			dianBiaoStart(hardwareID)
 
