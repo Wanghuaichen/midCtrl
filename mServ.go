@@ -23,8 +23,9 @@ func sendData(conn net.Conn) {
 
 }
 func recvData(conn net.Conn) {
+	fmt.Println("等待读取数据")
 	for {
-		fmt.Println("等待读取数据")
+
 		data := make([]byte, 1024)
 		//data, err := bufio.NewReader(conn).ReadBytes('\n')
 		//data, err := bufio.NewReader(conn).ReadBytes('\n')
@@ -47,7 +48,7 @@ func main() {
 	fmt.Println("Service Start!!!")
 	l, err := net.Listen("tcp", ":10103")
 	if err != nil {
-		log.Fatalln("监听7010失败", err.Error())
+		log.Fatalln("监听10103失败", err.Error())
 	}
 
 	for {
@@ -55,6 +56,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("建立连接失败", err.Error())
 		}
+		fmt.Printf("建立连接成功\n")
 		//go sendData(conn)
 		go recvData(conn)
 	}
