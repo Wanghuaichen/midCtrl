@@ -53,7 +53,7 @@ func shuiBiaoStart(id uint) {
 		//设置设备状态
 	}()
 	cmd := []byte{0xFE, 0xFE, 0x68, 0x10, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x01, 0x03, 0x90, 0x1F, 0xAA, 0x7B, 0x16} //获取水表数据命令
-	rCh := make(chan []byte)
+	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(shuiBiaoPeriod * 2)

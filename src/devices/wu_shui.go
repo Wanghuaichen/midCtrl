@@ -28,7 +28,7 @@ func wuShuiStart(id uint) {
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x06, 0xc5, 0xc8} //获取污水命令
-	rCh := make(chan []byte)
+	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	timeout := time.NewTimer(wuShuiPeriod * 2)
 	var temperature int

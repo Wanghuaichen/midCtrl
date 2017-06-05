@@ -90,7 +90,7 @@ func dianBiaoStart(id uint) {
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x40, 0x00, 0x02, 0xC5, 0xDF} //获取总电量命令 01 03 00 40 00 02 C5 DF
 	//cmdTotalEnergy := []byte{0x01, 0x03, 0x00, 0x56, 0x00, 0x02, 0x24, 0x1B} //获取总电量命令 01 03 00 56 00 02 24 1B
 	cmdAllData := []byte{0x01, 0x03, 0x00, 0x00, 0x00, 0x7F, 0x04, 0x2A} //获取电表所有数据01 03 00 00 00 7F 04 2A
-	rCh := make(chan []byte)
+	rCh := make(chan []byte,5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(dianBiaoPeriod * 2)

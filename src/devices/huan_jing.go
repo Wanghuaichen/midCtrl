@@ -138,7 +138,7 @@ func huanJingStart(id uint) {
 		//设置设备状态
 	}()
 	cmd := []byte{0x01, 0x03, 0x00, 0x00, 0xF1, 0xD8} //01 03 00 00 F1 D8  //获取实时环境命令
-	rCh := make(chan []byte)
+	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
 	timeout := time.NewTimer(huanJingPeriod * 2)

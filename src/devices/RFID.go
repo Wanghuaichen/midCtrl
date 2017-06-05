@@ -62,7 +62,7 @@ func rfidStart(id uint) {
 		//设置设备状态
 	}()
 
-	rCh := make(chan []byte)
+	rCh := make(chan []byte, 10)
 	stataCh := make(chan bool, 1)
 	fmt.Printf("RFID接受%d数据%v\n", id, conn)
 	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)

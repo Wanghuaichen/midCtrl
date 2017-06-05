@@ -38,7 +38,7 @@ func diBangD39Start(id uint) {
 		//设置设备状态
 	}()
 
-	rCh := make(chan []byte)
+	rCh := make(chan []byte, 10)
 	var strPre []byte //上次数据
 	strConuter := 0
 	stataCh := make(chan bool, 1)
