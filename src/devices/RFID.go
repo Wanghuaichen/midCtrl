@@ -37,6 +37,7 @@ E2 00 51 42 05 11 01 35 20 30 41 CF
 */
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -63,6 +64,7 @@ func rfidStart(id uint) {
 
 	rCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
+	fmt.Printf("RFID接受%d数据%v\n", id, conn)
 	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)
 	for {
 		var dat []byte
@@ -78,7 +80,7 @@ func rfidStart(id uint) {
 		//fmt.Printf("RFID:%v\n", dat)
 		userID := bytesToString(dat[4:16])
 		rfid := url.Values{"rfid": {userID}}
-		//fmt.Printf("RFID发送：%v\n", rfid)
+		fmt.Printf("RFID发送%d：%v\n", id, rfid)
 		sendData("RFID", id, rfid) //发送数据给服务器
 	}
 }
