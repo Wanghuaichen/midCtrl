@@ -148,6 +148,9 @@ func GetURL(urlStr string) (url string) {
 */
 // BindConn 绑定连接到具体设备 并设定状态为上线
 func bindConn(id uint, conn net.Conn) {
+	if devList[id].conn != nil {
+		devList[id].conn.Close()
+	}
 	devList[id].conn = conn
 	devList[id].state = online
 }
