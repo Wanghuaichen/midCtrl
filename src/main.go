@@ -5,8 +5,6 @@ import (
 	"devices"
 	"fmt"
 	"log"
-	"os"
-	"runtime/trace"
 	"serv"
 	"time"
 )
@@ -45,17 +43,17 @@ func Init() {
 }*/
 
 func main() {
-	f, err := os.Create("trace.out")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
+	// f, err := os.Create("trace.out")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer f.Close()
 
-	err = trace.Start(f)
-	if err != nil {
-		panic(err)
-	}
-	defer trace.Stop()
+	// err = trace.Start(f)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer trace.Stop()
 	Init()
 	// f, err := os.OpenFile("./tarce.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	// if err != nil {
