@@ -149,6 +149,7 @@ func GetURL(urlStr string) (url string) {
 // BindConn 绑定连接到具体设备 并设定状态为上线
 func bindConn(id uint, conn net.Conn) {
 	if devList[id].conn != nil {
+		log.Printf("非正常关闭连接:%d %v\n", id, conn)
 		devList[id].conn.Close()
 	}
 	devList[id].conn = conn
@@ -157,7 +158,12 @@ func bindConn(id uint, conn net.Conn) {
 
 // UnBindConn 解除设备的连接绑定 并设定状态为断开
 func unBindConn(id uint) {
-	devList[id].conn = nil
+	if devList[id].conn != nil {
+		log.Printf("解除绑定关闭连接:%d %v\n", id, devList[id].conn)
+		devList[id].conn.Close()
+		devList[id].conn = nil
+	}
+
 	devList[id].state = offline
 }
 
@@ -288,7 +294,7 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 			l.Close()
 			continue
 		}
-		fmt.Printf("建立连接成功:%d\n", hardwareID)
+		fmt.Printf("建立连接成功:%d %v\n", hardwareID, conn)
 		bindConn(hardwareID, conn)
 		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
 		log.Printf("%d--->%s\n", hardwareID, devTypeStr)

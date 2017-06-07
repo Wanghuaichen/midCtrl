@@ -5,6 +5,8 @@ import (
 	"devices"
 	"fmt"
 	"log"
+	"os"
+	"runtime/trace"
 	"serv"
 	"time"
 )
@@ -41,8 +43,19 @@ func Init() {
 		devices.SendData(data)
 	}
 }*/
+
 func main() {
 	Init()
+	f, err := os.OpenFile("./tarce.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer f.Close()
+	err = trace.Start(f)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer trace.Stop()
 	go serv.StartMsgToServer()
 	// 转发服务器的消息到设备侧处理
 	//go transServMsg()
