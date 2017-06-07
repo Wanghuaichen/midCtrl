@@ -338,9 +338,9 @@ func sendData(urlStr string, id uint, data url.Values) {
 	msg.HdID = id
 	msg.Data = data
 	msg.URLStr = urlStr
-	if urlStr != "设备状态" {
-		log.Printf("发送%s:%v\n", urlStr, msg)
-	}
+	// if urlStr != "设备状态" {
+	// 	log.Printf("发送%s:%v\n", urlStr, msg)
+	// }
 	//fmt.Printf("发送%s:%v\n", urlStr, data)
 	comm.SendMsg(msg)
 }
