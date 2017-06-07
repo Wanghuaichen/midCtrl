@@ -294,7 +294,7 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 			l.Close()
 			continue
 		}
-		fmt.Printf("建立连接成功:%d %v\n", hardwareID, conn)
+		//fmt.Printf("建立连接成功:%d %v\n", hardwareID, conn)
 		bindConn(hardwareID, conn)
 		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
 		log.Printf("%d--->%s\n", hardwareID, devTypeStr)
