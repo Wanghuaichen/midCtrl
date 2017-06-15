@@ -29,7 +29,7 @@ func znDiBangStart(id uint) {
 	}
 	defer func() {
 		conn.Close() //关闭连接
-		log.Printf("地磅监测处理发生错误\n")
+		log.Printf("移动地磅监测处理发生错误\n")
 		unBindConn(id)
 
 		//设置设备状态
@@ -51,7 +51,7 @@ func znDiBangStart(id uint) {
 				return
 			}
 		}
-		//log.Printf("地磅数据：%s\n", dat)
+		log.Printf("移动地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
 			strConuter++
 			if strConuter > 6 {

@@ -54,6 +54,8 @@ func connServ(addr string) {
 	case "10801": //塔吊
 		//tadiao(conn)
 	case "10901":
+	case "11601":
+	case "11201":
 	default:
 	}
 
@@ -92,6 +94,21 @@ func diBangD39(conn net.Conn) {
 		times := r.Intn(6)
 		index := r.Intn(10)
 		dat := []string{"23.54300=", ".1230000=", "546.7000=", "86.45000=", "546.0000=", "23.54930=", ".1273000=", "5446.700=", "86.49500=", "58746.00="}
+		for i := index; index > 0; index-- {
+			for k := times; k > 0; k-- {
+				conn.Write([]byte(dat[i]))
+				time.Sleep(time.Millisecond * 300)
+			}
+		}
+	}
+}
+func znDiBang(conn net.Conn) {
+	log.Println("移动地磅开始发送数据")
+	for {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		times := r.Intn(6)
+		index := r.Intn(10)
+		dat := []string{"=23.54300", ".1230000=", "546.7000=", "86.45000=", "546.0000=", "23.54930=", ".1273000=", "5446.700=", "86.49500=", "58746.00="}
 		for i := index; index > 0; index-- {
 			for k := times; k > 0; k-- {
 				conn.Write([]byte(dat[i]))
@@ -202,7 +219,7 @@ func huanjing(conn net.Conn) {
 }
 func main() {
 	InitLoger()
-	port := []string{"10101", "10102", "10103", "10104", "10201", "10301", "10401", "10501", "10601", "10701", "10801", "10901"}
+	port := []string{"10101", "10102", "10103", "10104", "10201", "10301", "10401", "10501", "10601", "10701", "10801", "10901", "11601", "11201"}
 	for _, v := range port {
 		go connServ(v)
 	}

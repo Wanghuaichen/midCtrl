@@ -17,7 +17,8 @@ package devices
 {废料回收处 ZNDIBANG-001 12 智能地磅 11201}
 {顶模 DIANTI-002 13 电梯2 10302}
 {工地西区 WUSHUI-002 14 污水监测2 10602}
-{工地大门入口 ENV-002 15 环境监测2 10702}] }
+{工地大门入口 ENV-002 15 环境监测2 10702}
+{喷淋区 PL-001 16 喷淋 11601}] }
 */
 import (
 	"encoding/json"
@@ -136,6 +137,7 @@ var urlTable = map[string]string{
 	"RFID": "http://39.108.5.184/smart/api/checkIn",
 	"电梯":   "http://39.108.5.184/smart/api/saveElevatorData",
 	"地磅":   "http://39.108.5.184/smart/api/saveWeighbridgeData",
+	"智能地磅": "http://39.108.5.184/smart/api/saveWeighbridgeData",
 	"摄像头":  "",
 	"设备列表": "http://39.108.5.184/smart/api/getHardwareList?projectId=1",
 	"设备状态": "http://39.108.5.184/smart/api/reportState"}
