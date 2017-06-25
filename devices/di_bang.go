@@ -60,11 +60,13 @@ func diBangD39Start(id uint) {
 			if strConuter > 5 {
 				//log.Printf("地磅数据：%s\n", dat) //=.0036100 -92233720
 				w := dibangDataTrans([]byte(dat)[1:])
-				if w != "0" {
-					urlData := url.Values{"weight": {w}}
-					//fmt.Printf("地磅发送数据:%v\n", urlData)
-					sendData("地磅", id, urlData)
-				}
+				urlData := url.Values{"weight": {w}}
+				sendData("地磅", id, urlData)
+				// if w != "0" {
+				// 	urlData := url.Values{"weight": {w}}
+				// 	//fmt.Printf("地磅发送数据:%v\n", urlData)
+				// 	sendData("地磅", id, urlData)
+				// }
 				strConuter = 0 //重新计数
 			}
 		} else {

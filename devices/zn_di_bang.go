@@ -39,7 +39,7 @@ func znDiBangStart(id uint) {
 	var strPre []byte //上次数据
 	strConuter := 0
 	stataCh := make(chan bool, 1)
-	go readOneData(conn, rCh, []byte{'='}, 10, stataCh)
+	go readOneData(conn, rCh, []byte{'='}, 8, stataCh)
 	for {
 		var dat []byte
 		var state bool
@@ -54,14 +54,16 @@ func znDiBangStart(id uint) {
 		log.Printf("移动地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
 			strConuter++
-			if strConuter > 6 {
+			if strConuter > 5 {
 				//log.Printf("地磅数据：%s\n", dat) //=.0036100 -92233720
 				w := znDibangDataTrans([]byte(dat)[1:8])
-				if w != "0" {
-					urlData := url.Values{"weight": {w}}
-					//fmt.Printf("地磅发送数据:%v\n", urlData)
-					sendData("智能地磅", id, urlData)
-				}
+				urlData := url.Values{"weight": {w}}
+				sendData("智能地磅", id, urlData)
+				// if w != "0" {
+				// 	urlData := url.Values{"weight": {w}}
+				// 	//fmt.Printf("地磅发送数据:%v\n", urlData)
+				// 	sendData("智能地磅", id, urlData)
+				// }
 				strConuter = 0 //重新计数
 			}
 		} else {
@@ -77,7 +79,7 @@ func znDibangDataTrans(dat []byte) string {
 	//log.Printf("地磅数据：%s\n", dat)
 	kg, err := strconv.ParseFloat(string(r), 64)
 	if err != nil {
-		log.Printf("d39转换数据失败:%s %s\n", string(r), err.Error())
+		log.Printf("智能地磅转换数据失败:%s %s\n", string(r), err.Error())
 	}
 	//log.Printf("地磅转化后数据：%f\n", kg)
 	return strconv.FormatInt(int64(kg*1000000000000)/100000000, 10) //乘大数，防止产生9999的小数
