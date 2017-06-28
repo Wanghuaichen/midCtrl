@@ -93,7 +93,7 @@ func reqServ(url string, dat url.Values) {
 				return
 			}
 			cmdData := comm.ServCmd{HdID: uint(hdID), Cmd: cmd}
-			log.Printf("获取要执行命令：%v\n", cmdData)
+			log.Printf("要执行命令：%v\n", cmdData)
 			comm.SendCmd(cmdData)
 		}
 		break
