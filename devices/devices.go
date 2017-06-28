@@ -262,7 +262,7 @@ func reqDevList(url string) error {
 			dev.conn = nil
 			dev.state = offline
 			dev.isOk = 1
-			dev.cmd = make(chan int, 1)
+			dev.cmd = make(chan int, 3)
 			devList[dev.hardwareID] = dev
 			devTypeTable[devTypeStr] = append(devTypeTable[devTypeStr], dev.hardwareID)
 
@@ -353,13 +353,15 @@ func sendData(urlStr string, id uint, data url.Values) {
 	// if urlStr != "设备状态" {
 	// 	log.Printf("发送%s:%v\n", urlStr, msg)
 	// }
-	//log.Printf("发送%s:%v\n", urlStr, msg)
+	log.Printf("发送%s:%v\n", urlStr, msg)
 	comm.SendMsg(msg)
 }
 func handleServCmd() {
-	servCmd := comm.GetCmd()
-	log.Printf("执行命令：%v\n", servCmd)
-	devList[servCmd.HdID].cmd <- servCmd.Cmd
+	for {
+		servCmd := comm.GetCmd()
+		log.Printf("执行命令：%v\n", servCmd)
+		devList[servCmd.HdID].cmd <- servCmd.Cmd
+	}
 }
 
 // IntiDevice 初始化设备连接
