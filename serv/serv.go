@@ -3,7 +3,6 @@
 package serv
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"midCtrl/comm"
@@ -63,7 +62,7 @@ func reqServ(url string, dat url.Values) {
 			continue
 		}
 		defer resp.Body.Close()
-		fmt.Printf("serv result：%s", result)
+		//fmt.Printf("serv result：%s\n", result)
 		jsDat, err := sjson.NewJson(result)
 		if err != nil {
 			log.Printf("返回数据非json：%s %s\n", err.Error(), result)
