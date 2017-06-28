@@ -33,7 +33,7 @@ func (msg *MsgData) SetTime() {
 	msg.Time = strconv.FormatInt(time.Now().Unix(), 10)
 }
 
-var msgQ = make(chan MsgData, 10000)
+var msgQ = make(chan MsgData, 1000)
 var cmdQ = make(chan ServCmd, 10)
 var byteConter = int(0)
 var msgNum = int(0)

@@ -79,16 +79,18 @@ func reqServ(url string, dat url.Values) {
 		} else {
 			cmd, err := jsDat.Get("data").Get("cmd").Int()
 			if err != nil {
-				log.Printf("获取服务器返回命令错误：%s\n", err.Error())
+				//log.Printf("获取服务器返回命令错误：%s\n", err.Error())
+				return
 			}
-			if cmd != 0 { //需要执行服务返回的操作
-				hdID, err := strconv.ParseUint(dat["hdId"][0], 10, 32)
-				if err != nil {
-					log.Printf("转化hdId错误：%s\n", err.Error())
-				}
-				cmd := comm.ServCmd{HdID: uint(hdID), Cmd: cmd}
-				comm.SendCmd(cmd)
+			//需要执行服务返回的操作
+			hdID, err := strconv.ParseUint(dat["hdId"][0], 10, 32)
+			if err != nil {
+				log.Printf("转化hdId错误：%s\n", err.Error())
+				return
 			}
+			cmdData := comm.ServCmd{HdID: uint(hdID), Cmd: cmd}
+			log.Printf("获取要执行命令：%v\n", cmdData)
+			comm.SendCmd(cmdData)
 		}
 		break
 	}

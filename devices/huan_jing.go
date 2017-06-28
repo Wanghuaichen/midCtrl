@@ -19,7 +19,7 @@ import (
 */
 
 var hjAddr uint8
-var huanJingPeriod = 60 * time.Second
+var huanJingPeriod = 180 * time.Second
 
 //var reqHuanJingTicker = time.NewTicker(huanJingPeriod) //请求环境数据周期
 type realtimeDataType struct {
