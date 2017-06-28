@@ -358,6 +358,7 @@ func sendData(urlStr string, id uint, data url.Values) {
 }
 func handleServCmd() {
 	servCmd := comm.GetCmd()
+	log.Printf("执行命令：%v\n", servCmd)
 	devList[servCmd.HdID].cmd <- servCmd.Cmd
 }
 

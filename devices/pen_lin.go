@@ -52,7 +52,8 @@ func penLinStart(id uint) {
 				log.Printf("电磁已经关闭")
 			} else {
 				log.Printf("状态值：%v\n", dat)
-				break
+				//timeout.Stop()
+				//break
 			}
 			timeout.Stop()
 			devList[id].isOk = 1
