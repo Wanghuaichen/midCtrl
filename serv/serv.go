@@ -48,7 +48,7 @@ func StartMsgToServer() {
 
 func reqServ(url string, dat url.Values) {
 	for {
-		//fmt.Printf("发送:%v\n", dat)
+		fmt.Printf("发送:%v\n", dat)
 		resp, err := http.PostForm(url, dat)
 		if err != nil {
 			log.Printf("发送数据失败：%s\n", err.Error())
@@ -62,7 +62,7 @@ func reqServ(url string, dat url.Values) {
 			continue
 		}
 		defer resp.Body.Close()
-		fmt.Printf("%s", result)
+		fmt.Printf("serv result：%s", result)
 		jsDat, err := sjson.NewJson(result)
 		if err != nil {
 			log.Printf("返回数据非json：%s %s\n", err.Error(), result)
