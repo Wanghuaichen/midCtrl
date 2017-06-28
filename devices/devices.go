@@ -262,7 +262,7 @@ func reqDevList(url string) error {
 			dev.conn = nil
 			dev.state = offline
 			dev.isOk = 1
-			dev.cmd = make(chan int)
+			dev.cmd = make(chan int, 1)
 			devList[dev.hardwareID] = dev
 			devTypeTable[devTypeStr] = append(devTypeTable[devTypeStr], dev.hardwareID)
 
