@@ -37,6 +37,7 @@ func penLinStart(id uint) {
 	go readOneData(conn, rCh, []byte{0x22, 0x01}, 8, stataCh)
 	go func() { //1分钟查询一次状态
 		wCh <- checkStatusCmd
+		timeout.Reset(penLinPeriod)
 		log.Printf("喷淋查询状态：%v\n", checkStatusCmd)
 		time.Sleep(penLinPeriod * 20)
 	}()
