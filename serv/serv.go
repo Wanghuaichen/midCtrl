@@ -3,6 +3,7 @@
 package serv
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"midCtrl/comm"
@@ -61,7 +62,7 @@ func reqServ(url string, dat url.Values) {
 			continue
 		}
 		defer resp.Body.Close()
-		//fmt.Printf("%s", result)
+		fmt.Printf("%s", result)
 		jsDat, err := sjson.NewJson(result)
 		if err != nil {
 			log.Printf("返回数据非json：%s %s\n", err.Error(), result)
@@ -73,13 +74,15 @@ func reqServ(url string, dat url.Values) {
 			str, _ := jsDat.String()
 			log.Printf("服务器返回值错误：%s %s\n", string(result), str)
 			return
-		} else if 200 != code {
+		}
+		if 200 != code {
 			log.Printf("服务器错误：%s %d\n", string(result), code)
 			return
-		} else {
+		}
+		if url == devices.GetURL("设备状态") {
 			cmd, err := jsDat.Get("data").Get("cmd").Int()
 			if err != nil {
-				//log.Printf("获取服务器返回命令错误：%s\n", err.Error())
+				log.Printf("获取服务器返回命令错误：%s\n", err.Error())
 				return
 			}
 			//需要执行服务返回的操作
