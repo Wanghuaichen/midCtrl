@@ -36,6 +36,7 @@ func StartMsgToServer() {
 		}
 		dat := msg.Data
 		if dat == nil {
+			log.Printf("数据内容为空\n")
 			continue
 		}
 		hdID := strconv.FormatInt(int64(msg.HdID), 10)
@@ -48,7 +49,7 @@ func StartMsgToServer() {
 
 func reqServ(url string, dat url.Values) {
 	for {
-		fmt.Printf("发送:%v\n", dat)
+		log.Printf("发送:%v\n", dat)
 		resp, err := http.PostForm(url, dat)
 		if err != nil {
 			log.Printf("发送数据失败：%s\n", err.Error())
