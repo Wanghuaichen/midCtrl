@@ -68,6 +68,7 @@ func penLinStart(id uint) {
 			break
 		case state = <-stataCh: //读写错误
 			if false == state {
+				log.Printf("喷淋读写错误\n")
 				return
 			}
 		case <-timeout.C:
