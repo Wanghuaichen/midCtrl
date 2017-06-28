@@ -353,7 +353,7 @@ func sendData(urlStr string, id uint, data url.Values) {
 	// if urlStr != "设备状态" {
 	// 	log.Printf("发送%s:%v\n", urlStr, msg)
 	// }
-	log.Printf("发送%s:%v\n", urlStr, msg)
+	//log.Printf("发送%s:%v\n", urlStr, msg)
 	comm.SendMsg(msg)
 }
 func handleServCmd() {

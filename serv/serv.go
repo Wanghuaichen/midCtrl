@@ -49,7 +49,7 @@ func StartMsgToServer() {
 
 func reqServ(url string, dat url.Values) {
 	for {
-		log.Printf("发送:%v\n", dat)
+		//log.Printf("发送:%v\n", dat)
 		resp, err := http.PostForm(url, dat)
 		if err != nil {
 			log.Printf("发送数据失败：%s\n", err.Error())
@@ -86,10 +86,15 @@ func reqServ(url string, dat url.Values) {
 				log.Printf("获取服务器返回命令错误：%s\n", err.Error())
 				return
 			}
+
 			//需要执行服务返回的操作
 			hdID, err := strconv.ParseUint(dat["hdId"][0], 10, 32)
 			if err != nil {
 				log.Printf("转化hdId错误：%s\n", err.Error())
+				return
+			}
+			//当前只有喷淋执行命令，不能一直往chanle中发数据而没有设备去读取执行，很快就会阻塞
+			if hdID != 16 { //16喷淋的ID
 				return
 			}
 			cmdData := comm.ServCmd{HdID: uint(hdID), Cmd: cmd}
