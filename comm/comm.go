@@ -53,7 +53,7 @@ func SendCmd(servCmd ServCmd) {
 
 //GetCmd 从命令消息队列中取出消息
 func GetCmd() (servCmd ServCmd) {
-	servCmd <-cmdQ
+	servCmd =<-cmdQ
 	cmdQNum--
 	return servCmd
 }
