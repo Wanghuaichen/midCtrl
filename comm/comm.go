@@ -28,25 +28,34 @@ const (
 	//KB 千字节
 	KB = 1024
 )
-
+const cmdQMaxNum = 10
+const msgQMaxNun = 1000
 // SetTime 给消息添加上当前的时间
 func (msg *MsgData) SetTime() {
 	msg.Time = strconv.FormatInt(time.Now().Unix(), 10)
 }
 
-var msgQ = make(chan MsgData, 1000)
-var cmdQ = make(chan ServCmd, 10)
+var msgQ = make(chan MsgData, msgQMaxNun)
+var cmdQ = make(chan ServCmd, cmdQMaxNum)
 var byteConter = int(0)
 var msgNum = int(0)
+var cmdQNum = int(0)
 
 //SendCmd 将命令消息发送到命令消息队列
 func SendCmd(servCmd ServCmd) {
+	if(cmdQNum>=cmdQMaxNum){
+		log.Printf("cmd消息队列满\n")
+		return
+	}
 	cmdQ <- servCmd
+	cmdQNum++
 }
 
 //GetCmd 从命令消息队列中取出消息
 func GetCmd() (servCmd ServCmd) {
-	return <-cmdQ
+	servCmd <-cmdQ
+	cmdQNum--
+	return servCmd
 }
 
 //GetMsgNum 返回消息队列中的消息数
