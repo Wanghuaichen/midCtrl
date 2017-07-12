@@ -2,6 +2,7 @@ package comm
 
 import (
 	"encoding/binary"
+	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -61,6 +62,7 @@ func GetMsgMemory() int {
 // SendMsg 发送消息到消息队列
 func SendMsg(msg MsgData) {
 	msgQ <- msg
+	log.Printf("%v消息已经放入发送队列:%v\n", msg, msgNum)
 	msgNum++
 	byteConter = byteConter + binary.Size(msg)
 }

@@ -305,7 +305,7 @@ func devAcceptConn(l net.Listener, hardwareID uint) {
 		//fmt.Printf("建立连接成功:%d %v\n", hardwareID, conn)
 		bindConn(hardwareID, conn)
 		devTypeStr, _ := getDevType(devList[hardwareID].hardwareCode)
-		log.Printf("%d--->%s\n", hardwareID, devTypeStr)
+		log.Printf("创建连接%d--->%s\n", hardwareID, devTypeStr)
 		switch devTypeStr {
 		case "塔吊":
 			//taDiaoStart(hardwareID)

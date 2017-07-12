@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"midCtrl/config"
 	"midCtrl/devices"
@@ -75,6 +74,6 @@ func main() {
 		//fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
 		//serv.SendData(data)
 		time.Sleep(time.Minute * 1)
-		fmt.Println("run main")
+		log.Println("run main")
 	}
 }
