@@ -28,6 +28,7 @@ import (
 func StartMsgToServer() {
 	for {
 		msg := comm.GetMsg()
+		log.Printf("取到消息：%v\n", msg)
 		url := devices.GetURL(msg.URLStr)
 		if url == "" {
 			log.Printf("获取url失败：%d\n", msg.HdID)
