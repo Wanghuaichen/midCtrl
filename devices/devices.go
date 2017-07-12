@@ -357,10 +357,18 @@ func sendData(urlStr string, id uint, data url.Values) {
 	comm.SendMsg(msg)
 }
 func handleServCmd() {
+	timeout := time.NewTimer(time.Second * 5)
 	for {
 		servCmd := comm.GetCmd()
 		log.Printf("执行命令：%v\n", servCmd)
-		devList[servCmd.HdID].cmd <- servCmd.Cmd
+		select{
+			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
+				break
+			case <-timeout.C:
+				log.Printf("发送执行命令超时，对应协程可能异常：%v\n",servCmd)
+
+		}
+		
 	}
 }
 
