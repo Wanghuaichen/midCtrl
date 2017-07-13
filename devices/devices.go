@@ -361,15 +361,14 @@ func handleServCmd() {
 	for {
 		servCmd := comm.GetCmd()
 		timeout.Reset(time.Second * 5)
-		log.Printf("执行命令：%v\n", servCmd)
-		select{
-			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
-				break
-			case <-timeout.C:
-				log.Printf("发送执行命令超时，对应协程可能异常：%v\n",servCmd)
+		//log.Printf("执行命令：%v\n", servCmd)
+		select {
+		case devList[servCmd.HdID].cmd <- servCmd.Cmd:
+			break
+		case <-timeout.C:
+			log.Printf("发送执行命令超时，对应协程可能异常：%v\n", servCmd)
 
 		}
-		
 	}
 }
 

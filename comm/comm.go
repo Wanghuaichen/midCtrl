@@ -30,6 +30,7 @@ const (
 )
 const cmdQMaxNum = 10
 const msgQMaxNun = 1000
+
 // SetTime 给消息添加上当前的时间
 func (msg *MsgData) SetTime() {
 	msg.Time = strconv.FormatInt(time.Now().Unix(), 10)
@@ -43,7 +44,7 @@ var cmdQNum = int(0)
 
 //SendCmd 将命令消息发送到命令消息队列
 func SendCmd(servCmd ServCmd) {
-	if(cmdQNum>=cmdQMaxNum){
+	if cmdQNum >= cmdQMaxNum {
 		log.Printf("cmd消息队列满\n")
 		return
 	}
@@ -53,7 +54,7 @@ func SendCmd(servCmd ServCmd) {
 
 //GetCmd 从命令消息队列中取出消息
 func GetCmd() (servCmd ServCmd) {
-	servCmd =<-cmdQ
+	servCmd = <-cmdQ
 	cmdQNum--
 	return servCmd
 }
@@ -71,7 +72,7 @@ func GetMsgMemory() int {
 // SendMsg 发送消息到消息队列
 func SendMsg(msg MsgData) {
 	msgQ <- msg
-	log.Printf("%v消息已经放入发送队列:%v\n", msg, msgNum)
+	//log.Printf("%v消息已经放入发送队列:%v\n", msg, msgNum)
 	msgNum++
 	byteConter = byteConter + binary.Size(msg)
 }
@@ -81,5 +82,5 @@ func GetMsg() (msg MsgData) {
 	msg = <-msgQ
 	msgNum--
 	byteConter = byteConter - binary.Size(msg)
-	return
+	return msg
 }
