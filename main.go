@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"midCtrl/config"
 	"midCtrl/devices"
 	"midCtrl/serv"
+	"os"
 	"time"
 )
 
@@ -12,23 +12,23 @@ import (
 // var serviceConn net.Conn
 
 // serviceAddr 主服务器地址
-var serviceAddr string
+// var serviceAddr string
 
 // InitLoger 初始化log配置
 func InitLoger() error {
-	/*file, err := os.OpenFile("./log.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
+	file, err := os.OpenFile("./zhgdLog.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
 	if err != nil {
 		return err
-	}*/
+	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	//log.SetOutput(file)
+	log.SetOutput(file)
 	return nil
 
 }
 
 // Init 初始化程序
 func Init() {
-	config.InitConfig()
+	//config.InitConfig()
 	InitLoger()
 	devices.IntiDevice()
 }
