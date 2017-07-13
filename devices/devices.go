@@ -238,7 +238,7 @@ func reqDevList(url string) error {
 		return err
 	}
 
-	fmt.Println(reqDevListData)
+	log.Println(reqDevListData)
 	if reqDevListData.Code != 200 {
 		log.Printf("服务器错误\n")
 		err := errors.New("服务器错误")
@@ -278,11 +278,11 @@ func reqDevList(url string) error {
 				log.Println("listen == nil")
 				continue
 			}
-			fmt.Printf("监听 【%s】成功\n", port)
+			log.Printf("监听 【%s】成功\n", port)
 			go devAcceptConn(listen, dev.hardwareID)
 		}
 	}
-	fmt.Println(devList)
+	//fmt.Println(devList)
 	return nil
 }
 func getConn(id uint) net.Conn {
