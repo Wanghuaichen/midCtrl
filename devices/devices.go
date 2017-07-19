@@ -191,7 +191,7 @@ func setStateOk(id uint) {
 func reqDevList(url string) error {
 	defer func(){
 		if err:=recover();err!=nil{
-			fmt.Printf("获取设备列表发生Panic错误：%s\n", err.Error());
+			fmt.Printf("获取设备列表发生Panic错误：%s\n", err.Error())
 		}
 	}
 	//sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
