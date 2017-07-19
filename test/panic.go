@@ -11,8 +11,8 @@ func p() {
 			fmt.Printf("err:%s\n", err)
 		}
 	}()
-	//panic("挂了")
-	go k()
+	panic("挂了")
+	//go k()
 }
 func k() {
 	panic("死了")

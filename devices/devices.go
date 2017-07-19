@@ -189,6 +189,11 @@ func setStateOk(id uint) {
 /*{ "code":200, "data":[ { "area":"生活区", "hardwareCode":"DIANBIAO-001", "hardwareId":1, "name":"智能电表", "port":10001 }, { "area":"施工区", "hardwareCode":"DIANBIAO-002", "hardwareId":2, "name":"智能电表", "port":10002 }, { "area":"大门", "hardwareCode":"RFID-001", "hardwareId":3, "name":"RFID读卡器", "port":10003 } ], "errMsg":"" } */
 
 func reqDevList(url string) error {
+	defer func(){
+		if err:=recover();err!=nil{
+			fmt.Printf("获取设备列表发生Panic错误：%s\n", err.Error());
+		}
+	}
 	//sendServ([]byte(`{"MsgType":"Serv","Action":"DevList"}`))
 	//fmt.Printf("reqDevList start\n")
 	type jsonDev struct {
