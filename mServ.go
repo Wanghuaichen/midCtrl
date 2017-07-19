@@ -15,7 +15,7 @@ func sendData(conn net.Conn) {
 		fmt.Println("请写入数据:")
 		line, _, err := bufio.NewReader(os.Stdin).ReadLine()
 		if err != nil {
-			log.Fatalln("标准输入读取数据失败", err.Error())
+			log.Fatalln("标准输入读取数据失败", err)
 		}
 		s := strings.Fields(string(line))
 		fmt.Printf("%v\n", s)
