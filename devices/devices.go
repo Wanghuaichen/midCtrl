@@ -373,7 +373,7 @@ func sendData(urlStr string, id uint, data url.Values) {
 
 // handleServCmd 处理服务器返回的命令
 func handleServCmd() {
-	timeout := time.NewTimer(time.Second * 5)
+	timeout := time.NewTimer(time.Second * 2)
 	for {
 		servCmd := comm.GetCmd()
 		//log.Printf("执行命令：%v\n", servCmd)
@@ -381,7 +381,7 @@ func handleServCmd() {
 		if devList[servCmd.HdID].state == 1 { //只有设备在线才发给设备
 			select {
 			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
-				break
+				timeout.stop()
 			case <-timeout.C:
 				log.Printf("发送执行命令超时，对应协程可能异常：%v\n", servCmd)
 			}
@@ -405,10 +405,11 @@ func IntiDevice() error {
 			reportDevStatus()
 		}
 	}()
+	//两秒上报一次喷淋状态
 	go func(){
 		for{
 			reportPenLinStatus()
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 2)
 		}
 	}()
 	go handleServCmd()
