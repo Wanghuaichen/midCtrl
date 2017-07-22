@@ -408,7 +408,7 @@ func IntiDevice() error {
 			reportPenLinStatus()
 			time.Sleep(time.Second * 5)
 		}
-	}{}
+	}()
 	go handleServCmd()
 	return nil
 }
