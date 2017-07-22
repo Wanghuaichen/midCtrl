@@ -349,6 +349,13 @@ func reportDevStatus() {
 		sendData("设备状态", dev.hardwareID, devState)
 	}
 }
+// hdid = 16 为喷淋
+func reportPenLinStatus(){
+	devState := make(url.Values)
+	devState["isOk"] = []string{strconv.FormatInt(int64(devList[16].isOk), 10)}
+	devState["state"] = []string{strconv.FormatInt(int64(devList[16].state), 10)}
+	sendData("设备状态", dev.hardwareID, devState)
+}
 func sendData(urlStr string, id uint, data url.Values) {
 	var msg comm.MsgData
 	msg.SetTime()
@@ -368,7 +375,7 @@ func handleServCmd() {
 	for {
 		servCmd := comm.GetCmd()
 		//log.Printf("执行命令：%v\n", servCmd)
-		timeout.Reset(time.Second * 5)
+		timeout.Reset(time.Second * 2)
 		if devList[servCmd.HdID].state == 1 { //只有设备在线才发给设备
 			select {
 			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
@@ -396,6 +403,12 @@ func IntiDevice() error {
 			reportDevStatus()
 		}
 	}()
+	go func(){
+		for{
+			reportPenLinStatus()
+			time.Sleep(time.Second * 5)
+		}
+	}{}
 	go handleServCmd()
 	return nil
 }
