@@ -352,8 +352,8 @@ func reportDevStatus() {
 // hdid = 16 为喷淋
 func reportPenLinStatus(){
 	devState := make(url.Values)
-	devState["isOk"] = []string{strconv.FormatInt(int64(devList[16].isOk), 10)}
-	devState["state"] = []string{strconv.FormatInt(int64(devList[16].state), 10)}
+	devState["isOk"] = []string{strconv.FormatInt(int64((*devList[16]).isOk), 10)}
+	devState["state"] = []string{strconv.FormatInt(int64((*devList[16]).state), 10)}
 	sendData("设备状态", 16, devState)
 }
 func sendData(urlStr string, id uint, data url.Values) {
