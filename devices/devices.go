@@ -381,7 +381,7 @@ func handleServCmd() {
 		if devList[servCmd.HdID].state == 1 { //只有设备在线才发给设备
 			select {
 			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
-				timeout.stop()
+				timeout.Stop()
 			case <-timeout.C:
 				log.Printf("发送执行命令超时，对应协程可能异常：%v\n", servCmd)
 			}
