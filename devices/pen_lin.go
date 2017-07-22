@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var penLinPeriod = 5 * time.Second
+var penLinPeriod = 2 * time.Second
 
 func penLinStart(id uint) {
 	conn := getConn(id)
@@ -64,7 +64,7 @@ func penLinStart(id uint) {
 				wCh <- open20sCmd
 			}
 			if cmd == 0 {
-				//wCh <- closeCmd
+				wCh <- closeCmd
 			}
 			timeout.Reset(penLinPeriod)
 			break
