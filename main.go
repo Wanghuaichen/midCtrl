@@ -15,13 +15,15 @@ import (
 // var serviceAddr string
 
 // InitLoger 初始化log配置
-func InitLoger() error {
-	file, err := os.OpenFile("./zhgdLog.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
-	if err != nil {
-		return err
+func InitLoger(logPath string) error {
+	if(logPath!=""){
+		file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
+		if err != nil {
+			return err
+		}
+		log.SetOutput(file)
 	}
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetOutput(file)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)	
 	return nil
 
 }
@@ -29,7 +31,7 @@ func InitLoger() error {
 // Init 初始化程序
 func Init() {
 	//config.InitConfig()
-	InitLoger()
+	InitLoger("")
 	devices.IntiDevice()
 }
 
