@@ -93,7 +93,7 @@ func dianBiaoStart(id uint) {
 	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
-	timeout := time.NewTimer(dianBiaoPeriod * 2)
+	timeout := time.NewTimer(time.Second * 5)
 	go sendCmd(conn, wCh, stataCh)
 	//go readOneData(conn, rCh, []byte{0x01, 0x03, 0x04}, 3+4+2, stataCh)
 	go readOneData(conn, rCh, []byte{0x01, 0x03, 0xFE}, 3+254+2, stataCh)
@@ -102,7 +102,7 @@ func dianBiaoStart(id uint) {
 		var state bool
 		//获取用电量
 		wCh <- cmdAllData
-		timeout.Reset(dianBiaoPeriod * 2)
+		timeout.Reset(time.Second * 5)
 		select {
 		case dat = <-rCh:
 			break

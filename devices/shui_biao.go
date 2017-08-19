@@ -1,6 +1,6 @@
 //偶效验、停止位1、通讯ID为表计地址、波特率为2400，数据位8
 //485表计对应线：绿色485B。白色485A
-
+// 2400,8,e,1
 /*
 读取当前表具ID号，主机发送：
 68 10 AA AA AA AA AA AA AA 03 03 0A 81 A7 56 16
@@ -56,7 +56,7 @@ func shuiBiaoStart(id uint) {
 	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
-	timeout := time.NewTimer(shuiBiaoPeriod * 2)
+	timeout := time.NewTimer(time.Second * 5)
 	go sendCmd(conn, wCh, stataCh)
 	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
 	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37, stataCh)
@@ -64,7 +64,7 @@ func shuiBiaoStart(id uint) {
 		var dat []byte
 		var state bool
 		wCh <- cmd
-		timeout.Reset(shuiBiaoPeriod * 2)
+		timeout.Reset(time.Second * 5)
 		select {
 		case dat = <-rCh:
 			break
