@@ -416,11 +416,12 @@ func reportDevStatus() {
 		sendData("设备状态", dev.hardwareID, devState)
 	}
 }
+
 // hdid = 16 为喷淋
-func reportPenLinStatus(){
-	if dev,ok:= devList[16]; ok{
+func reportPenLinStatus() {
+	if dev, ok := devList[16]; ok {
 		devState := make(url.Values)
-		devState["isOk"] = []string{strconv.FormatInt(int64(dev.isOk), 10)}
+		devState["isOk"] = []string{strconv.FormatInt(int64(dev.cmdIsOk), 10)}
 		devState["state"] = []string{strconv.FormatInt(int64(dev.state), 10)}
 		sendData("设备状态", 16, devState)
 	}
@@ -474,8 +475,8 @@ func IntiDevice() error {
 		}
 	}()
 	//两秒上报一次喷淋状态
-	go func(){
-		for{
+	go func() {
+		for {
 			reportPenLinStatus()
 			time.Sleep(time.Second * 2)
 		}
