@@ -43,6 +43,7 @@ func wuShuiStart(id uint) {
 		timeout.Reset(wuShuiPeriod * 2)
 		select {
 		case dat = <-rCh:
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
@@ -50,6 +51,8 @@ func wuShuiStart(id uint) {
 			}
 		case <-timeout.C:
 			log.Printf("污水读数据超时重新发送读取数据\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
 			continue
 		}
 		if !checkModbusCRC16(dat) {
@@ -61,6 +64,8 @@ func wuShuiStart(id uint) {
 		serData := map[string][]string{"ph": {strconv.FormatInt(int64(ph), 10)}, "temperature": {strconv.FormatInt(int64(temperature), 10)}, "alarm": {"0"}}
 		//fmt.Printf("污水发送：%v\n", serData)
 		sendData("污水", id, serData)
+		devList[id].data = "temperature:" + serData["temperature"][0] + ",ph:" + serData["ph"][0]
+		devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 		time.Sleep(wuShuiPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }

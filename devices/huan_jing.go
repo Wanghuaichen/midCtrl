@@ -141,23 +141,26 @@ func huanJingStart(id uint) {
 	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
-	timeout := time.NewTimer(huanJingPeriod * 2)
+	timeout := time.NewTimer(5 * time.Second)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x1, 0x3, 0x0, 0x40}, 4+0x40+2, stataCh)
 	for {
 		var dat []byte
 		var state bool
 		wCh <- cmd
-		timeout.Reset(huanJingPeriod * 2)
+		timeout.Reset(5 * time.Second)
 		select {
 		case dat = <-rCh:
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
 				return
 			}
 		case <-timeout.C:
-			log.Printf("电表读数据超时重新发送读取数据\n")
+			log.Printf("环境读数据超时\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
 			continue
 		}
 		if !checkModbusCRC16(dat) {
@@ -173,6 +176,10 @@ func huanJingStart(id uint) {
 		}
 		//fmt.Printf("环境实时数据：%v\n", realData.toServData())
 		sendData("环境", id, realData.toServData())
+		for k, v := range realData.toServData() {
+			devList[id].data = k + ":" + v[0] + ","
+		}
+		devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 		time.Sleep(huanJingPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }

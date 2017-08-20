@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 //d39
@@ -34,13 +35,13 @@ func diBangD39Start(id uint) {
 		conn.Close() //关闭连接
 		log.Printf("地磅监测处理发生错误\n")
 		unBindConn(id)
-
 		//设置设备状态
 	}()
 
 	rCh := make(chan []byte, 10)
 	var strPre []byte //上次数据
 	strConuter := 0
+	timeout := time.NewTimer(5 * time.Second)
 	stataCh := make(chan bool, 1)
 	go readOneData(conn, rCh, []byte{'='}, 9, stataCh)
 	for {
@@ -48,11 +49,18 @@ func diBangD39Start(id uint) {
 		var state bool
 		select {
 		case dat = <-rCh:
+			timeout.Reset(5 * time.Second)
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("地磅没有数据\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
+			break
 		}
 		//log.Printf("地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
@@ -62,6 +70,8 @@ func diBangD39Start(id uint) {
 				w := dibangDataTrans([]byte(dat)[1:])
 				urlData := url.Values{"weight": {w}}
 				sendData("地磅", id, urlData)
+				devList[id].data = w
+				devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 				// if w != "0" {
 				// 	urlData := url.Values{"weight": {w}}
 				// 	//fmt.Printf("地磅发送数据:%v\n", urlData)

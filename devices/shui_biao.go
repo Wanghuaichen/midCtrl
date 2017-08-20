@@ -67,6 +67,7 @@ func shuiBiaoStart(id uint) {
 		timeout.Reset(time.Second * 5)
 		select {
 		case dat = <-rCh:
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
@@ -74,12 +75,16 @@ func shuiBiaoStart(id uint) {
 			}
 		case <-timeout.C:
 			log.Printf("水表读数据超时重新发送读取数据\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
 			continue
 		}
 		zongLeiJi := getShuiLiang(dat[16:20])
 		sData := map[string][]string{"total": {strconv.FormatInt(int64(zongLeiJi)*1000, 10)}, "record": {"0"}}
 		//fmt.Printf("水表发送：%v\n", sData)
 		sendData("水表", id, sData)
+		devList[id].data = sData["total"][0]
+		devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 		time.Sleep(shuiBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }

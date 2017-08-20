@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"midCtrl/devices"
+	"midCtrl/httpServ"
 	"midCtrl/serv"
 	"os"
 	"time"
@@ -54,6 +55,7 @@ func main() {
 	// }
 	// defer trace.Stop()
 	Init()
+	go httpServ.ServStart()
 	// f, err := os.OpenFile("./tarce.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	// if err != nil {
 	// 	log.Fatal(err.Error())

@@ -30,6 +30,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -41,16 +42,76 @@ const (
 	noData  = uint(2)
 )
 
+//DevStatusInfo 设备状态信息
+type DevStatusInfo struct {
+	Name       string
+	NetStatus  string
+	DataStatus string
+	CmdStatus  string
+	Location   string
+	LastData   string
+	LastTime   string
+}
+
+// GetDevStatusInfo 获取设备状态信息列表
+func GetDevStatusInfo() []DevStatusInfo {
+	n := len(devList)
+	if n == 0 {
+		return nil
+	}
+	devInfo := make([]DevStatusInfo, n)
+	//排序
+	list := make([]uint, 0, n)
+	for key := range devList {
+		list = append(list, key)
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i] < list[j] })
+	//fmt.Println(list)
+	i := 0
+	for _, key := range list {
+		//fmt.Printf("i=%d\n", i)
+		dev := devList[key]
+		devInfo[i].Name = dev.name
+		devInfo[i].Location = dev.area
+		devInfo[i].LastData = dev.data
+		devInfo[i].LastTime = dev.lastTime
+		if dev.state == 0 {
+			devInfo[i].NetStatus = "离线"
+		} else {
+			devInfo[i].NetStatus = "在线"
+		}
+		if dev.dataState == 0 {
+			devInfo[i].DataStatus = "断开"
+		} else {
+			devInfo[i].DataStatus = "连通"
+		}
+		if dev.cmdIsOk == 0 {
+			devInfo[i].CmdStatus = "失败"
+		} else if dev.cmdIsOk == 1 {
+			devInfo[i].CmdStatus = "成功"
+		} else {
+			devInfo[i].CmdStatus = "未知"
+		}
+		i++
+	}
+	return devInfo
+}
+
 //Device 设备
 type Device struct {
-	hardwareID   uint
-	port         uint
-	hardwareCode string
-	//devType      string
-	conn  net.Conn
-	state uint     //当前状态 1 正常  0 网络断开 2 设备不能返回数据
-	isOk  uint     //命令执行结果
-	cmd   chan int //从服务器返回命令给具体设备执行
+	hardwareID   uint     //设备ID
+	port         uint     //设备数据端口号
+	hardwareCode string   //设备编码
+	name         string   //设备名称
+	area         string   //设备安装区域
+	data         string   //设备当前最新数据
+	conn         net.Conn //设备建立的网络连接
+	state        uint     //当前状态 1 正常  0 网络断开 2 设备不能返回数据
+	dataState    uint     //数据连接状态 1 正常 0 断开
+	config       string   //设备接口的配置参数
+	cmdIsOk      uint     //命令执行结果
+	cmdCh        chan int //从服务器返回命令给具体设备执行
+	lastTime     string   //最后接受到数据的时间
 }
 
 // DevType 设备类型
@@ -169,9 +230,12 @@ func unBindConn(id uint) {
 		log.Printf("解除绑定关闭连接:%d %v\n", id, devList[id].conn)
 		devList[id].conn.Close()
 		devList[id].conn = nil
+
 	}
 
 	devList[id].state = offline
+	devList[id].dataState = 2
+	devList[id].cmdIsOk = 2
 }
 
 func setStateNoData(id uint) {
@@ -266,8 +330,11 @@ func reqDevList(url string) error {
 			dev.hardwareID = v.HardwareID
 			dev.conn = nil
 			dev.state = offline
-			dev.isOk = 1
-			dev.cmd = make(chan int, 3)
+			dev.dataState = 0
+			dev.cmdIsOk = 2
+			dev.area = v.Area
+			dev.name = v.Name
+			dev.cmdCh = make(chan int, 3)
 			devList[dev.hardwareID] = dev
 			devTypeTable[devTypeStr] = append(devTypeTable[devTypeStr], dev.hardwareID)
 
@@ -344,7 +411,7 @@ func generateDataJSONStr(id string, action string, data string) string {
 func reportDevStatus() {
 	for _, dev := range devList {
 		devState := make(url.Values)
-		devState["isOk"] = []string{strconv.FormatInt(int64(dev.isOk), 10)}
+		devState["isOk"] = []string{strconv.FormatInt(int64(dev.cmdIsOk), 10)}
 		devState["state"] = []string{strconv.FormatInt(int64(dev.state), 10)}
 		sendData("设备状态", dev.hardwareID, devState)
 	}
@@ -355,10 +422,11 @@ func sendData(urlStr string, id uint, data url.Values) {
 	msg.HdID = id
 	msg.Data = data
 	msg.URLStr = urlStr
-	// if urlStr != "设备状态" {
-	// 	log.Printf("发送%s:%v\n", urlStr, msg)
-	// }
-	log.Printf("发送%s:%v\n", urlStr, msg)
+
+	if urlStr != "设备状态" {
+		log.Printf("发送%s:%v\n", urlStr, msg)
+	}
+	//log.Printf("发送%s:%v\n", urlStr, msg)
 	comm.SendMsg(msg)
 }
 
@@ -371,7 +439,7 @@ func handleServCmd() {
 		timeout.Reset(time.Second * 5)
 		if devList[servCmd.HdID].state == 1 { //只有设备在线才发给设备
 			select {
-			case devList[servCmd.HdID].cmd <- servCmd.Cmd:
+			case devList[servCmd.HdID].cmdCh <- servCmd.Cmd:
 				break
 			case <-timeout.C:
 				log.Printf("发送执行命令超时，对应协程可能异常：%v\n", servCmd)

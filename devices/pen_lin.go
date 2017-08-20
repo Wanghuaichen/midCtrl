@@ -26,20 +26,22 @@ func penLinStart(id uint) {
 	//openCmd := []byte{0x55, 0x01, 0x12, 0x00, 0x00, 0x00, 0x01, 0x69}         //55 01 12 00 00 00 01 69
 	//openReplyCmd := []byte{0x22, 0x01, 0x12, 0x00, 0x00, 0x00, 0x01, 0x36}    //22 01 12 00 00 00 01 36
 	//closeCmd := []byte{0x55, 0x01, 0x11, 0x00, 0x00, 0x00, 0x01, 0x68}        //55 01 11 00 00 00 01 68
-	closeReplyCmd := []byte{0x22, 0x01, 0x11, 0x00, 0x00, 0x00, 0x00, 0x34}   //22 01 11 00 00 00 00 34
-	checkStatusCmd := []byte{0x55, 0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x66}  //55 01 10 00 00 00 00 66
-	open20sCmd := []byte{0x55, 0x01, 0x21, 0x00, 0x4E, 0x20, 0x01, 0xE6}      //55 01 21 00 4E 20 01 E6  //20s后断开
-	open20sReplyCmd := []byte{0x22, 0x01, 0x21, 0x00, 0x00, 0x00, 0x01, 0x45} //22 01 21 00 00 00 01 45  //20s后断开
+	closeReplyCmd := []byte{0x22, 0x01, 0x11, 0x00, 0x00, 0x00, 0x00, 0x34}    //22 01 11 00 00 00 00 34
+	checkStatusCmd := []byte{0x55, 0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x66}   //55 01 10 00 00 00 00 66 检测第0位继电器状态
+	allCloseReplyCmd := []byte{0x55, 0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x66} //22 01 10 00 00 00 00 33
+	open1ReplyCmd := []byte{0x55, 0x01, 0x10, 0x00, 0x00, 0x00, 0x00, 0x66}    //22 01 10 00 00 00 01 34
+	open20sCmd := []byte{0x55, 0x01, 0x21, 0x00, 0x4E, 0x20, 0x01, 0xE6}       //55 01 21 00 4E 20 01 E6  //20s后断开
+	open20sReplyCmd := []byte{0x22, 0x01, 0x21, 0x00, 0x00, 0x00, 0x01, 0x45}  //22 01 21 00 00 00 01 45  //20s后断开
 	stataCh := make(chan bool, 1)
 	var cmd int
-	timeout := time.NewTimer(penLinPeriod)
+	timeout := time.NewTimer(2 * time.Second)
 	go sendCmd(conn, wCh, stataCh)
 	go readOneData(conn, rCh, []byte{0x22, 0x01}, 8, stataCh)
 	go func() { //1分钟查询一次状态
 		wCh <- checkStatusCmd
 		timeout.Reset(penLinPeriod)
-		log.Printf("喷淋查询状态：%v\n", checkStatusCmd)
-		time.Sleep(penLinPeriod * 20)
+		//log.Printf("喷淋查询状态：%v\n", checkStatusCmd)
+		time.Sleep(time.Second * 120)
 	}()
 	for {
 		var dat []byte
@@ -47,26 +49,32 @@ func penLinStart(id uint) {
 		select {
 		case dat = <-rCh:
 			if bytes.Equal(open20sReplyCmd, dat) {
-				log.Printf("电磁已经打开")
+				//log.Printf("电磁已经打开")
+				devList[id].data = "电磁已经打开"
 			} else if bytes.Equal(closeReplyCmd, dat) {
-				log.Printf("电磁已经关闭")
+				//log.Printf("电磁已经关闭")
+				devList[id].data = "电磁已经关闭"
+			} else if bytes.Equal(allCloseReplyCmd, dat) {
+				devList[id].data = "电磁已经关闭"
+			} else if bytes.Equal(open1ReplyCmd, dat) {
+				devList[id].data = "电磁已经打开"
 			} else {
 				log.Printf("状态值：%v\n", dat)
-				//timeout.Stop()
-				//break
 			}
+			devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 			timeout.Stop()
-			devList[id].isOk = 1
+			devList[id].cmdIsOk = 1
+			devList[id].dataState = 1
 			break
-		case cmd = <-devList[id].cmd:
-			log.Printf("喷淋收到服务器命令：%d\n", cmd)
+		case cmd = <-devList[id].cmdCh:
+			//log.Printf("喷淋收到服务器命令：%d\n", cmd)
 			if cmd == 1 { //开电磁阀
 				wCh <- open20sCmd
 			}
 			if cmd == 0 {
 				//wCh <- closeCmd
 			}
-			timeout.Reset(penLinPeriod)
+			timeout.Reset(2 * time.Second)
 			break
 		case state = <-stataCh: //读写错误
 			if false == state {
@@ -75,7 +83,8 @@ func penLinStart(id uint) {
 			}
 		case <-timeout.C:
 			log.Printf("电磁阀执行命令超时\n")
-			devList[id].isOk = 0
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
 			break
 		}
 

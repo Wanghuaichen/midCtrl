@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 //yh-500
@@ -39,17 +40,25 @@ func znDiBangStart(id uint) {
 	var strPre []byte //上次数据
 	strConuter := 0
 	stataCh := make(chan bool, 1)
+	timeout := time.NewTimer(5 * time.Second)
 	go readOneData(conn, rCh, []byte{'='}, 8, stataCh)
 	for {
 		var dat []byte
 		var state bool
 		select {
 		case dat = <-rCh:
+			timeout.Reset(5 * time.Second)
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("移动地磅没有数据\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
+			break
 		}
 		log.Printf("移动地磅数据：%s\n", dat)
 		if bytes.Equal(strPre, dat) {
@@ -59,6 +68,8 @@ func znDiBangStart(id uint) {
 				w := znDibangDataTrans([]byte(dat)[1:8])
 				urlData := url.Values{"weight": {w}}
 				sendData("智能地磅", id, urlData)
+				devList[id].data = w
+				devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 				// if w != "0" {
 				// 	urlData := url.Values{"weight": {w}}
 				// 	//fmt.Printf("地磅发送数据:%v\n", urlData)
@@ -70,7 +81,6 @@ func znDiBangStart(id uint) {
 			strConuter = 0 //重新计数
 		}
 		strPre = dat //保存数据多次相同时才上报
-		//time.Sleep(wuShuiPeriod)
 	}
 }
 

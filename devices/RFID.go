@@ -41,6 +41,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*func rfidStart(id uint) {
@@ -64,23 +65,33 @@ func rfidStart(id uint) {
 	rCh := make(chan []byte, 10)
 	stataCh := make(chan bool, 1)
 	//fmt.Printf("RFID接受%d数据%v\n", id, conn)
+	timeout := time.NewTimer(12 * time.Hour)
 	go readOneData(conn, rCh, []byte{0x7F, 0x00, 0x0D, 0x60}, 17, stataCh)
 	for {
 		var dat []byte
 		var state bool
 		select {
 		case dat = <-rCh:
+			timeout.Reset(12 * time.Hour)
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
 				return
 			}
+		case <-timeout.C:
+			log.Printf("环境读数据超时\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
+			continue
 		}
 		//fmt.Printf("RFID:%v\n", dat)
 		userID := bytesToString(dat[4:16])
 		rfid := url.Values{"rfid": {userID}}
 		//fmt.Printf("RFID发送%d：%v\n", id, rfid)
 		sendData("RFID", id, rfid) //发送数据给服务器
+		devList[id].data = userID
+		devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 	}
 }
 

@@ -105,6 +105,7 @@ func dianBiaoStart(id uint) {
 		timeout.Reset(time.Second * 5)
 		select {
 		case dat = <-rCh:
+			devList[id].dataState = 1
 			break
 		case state = <-stataCh:
 			if false == state {
@@ -112,6 +113,8 @@ func dianBiaoStart(id uint) {
 			}
 		case <-timeout.C:
 			log.Printf("电表读数据超时重新发送读取数据\n")
+			devList[id].cmdIsOk = 0
+			devList[id].dataState = 0
 			continue
 		}
 		if !checkModbusCRC16(dat) {
@@ -174,6 +177,8 @@ func dianBiaoStart(id uint) {
 			//fmt.Printf("电表发送%v\n", sData)
 		*/
 		sendData("电表", id, sData)
+		devList[id].data = "总电量：" + sData["record"][0] + "，当前功率:" + sData["kw"][0]
+		devList[id].lastTime = time.Now().Format("2006-01-02 15:04:05")
 		time.Sleep(dianBiaoPeriod + time.Duration(time.Now().Unix()%10))
 	}
 }
