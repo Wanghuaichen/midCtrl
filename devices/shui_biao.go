@@ -56,7 +56,7 @@ func shuiBiaoStart(id uint) {
 	rCh := make(chan []byte, 5)
 	wCh := make(chan []byte)
 	stataCh := make(chan bool, 1)
-	timeout := time.NewTimer(time.Second * 5)
+	timeout := time.NewTimer(time.Second * 3)
 	go sendCmd(conn, wCh, stataCh)
 	//FE FE 68 10 45 41 10 05 15 33 78 81 16 90 1F AA 00 59 59 00 2C FF FF FF FF 2C FF FF FF FF FF FF FF 00 00 C2 16
 	go readOneData(conn, rCh, []byte{0xFE, 0xFE, 0x68, 0x10}, 37, stataCh)
@@ -64,7 +64,7 @@ func shuiBiaoStart(id uint) {
 		var dat []byte
 		var state bool
 		wCh <- cmd
-		timeout.Reset(time.Second * 5)
+		timeout.Reset(time.Second * 3)
 		select {
 		case dat = <-rCh:
 			devList[id].dataState = 1
