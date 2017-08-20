@@ -16,13 +16,15 @@ import (
 // var serviceAddr string
 
 // InitLoger 初始化log配置
-func InitLoger() error {
-	file, err := os.OpenFile("./zhgdLog.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
-	if err != nil {
-		return err
+func InitLoger(logPath string) error {
+	if logPath != "" {
+		file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend)
+		if err != nil {
+			return err
+		}
+		log.SetOutput(file)
 	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetOutput(file)
 	return nil
 
 }
@@ -30,7 +32,7 @@ func InitLoger() error {
 // Init 初始化程序
 func Init() {
 	//config.InitConfig()
-	InitLoger()
+	InitLoger("")
 	devices.IntiDevice()
 }
 
@@ -43,34 +45,11 @@ func Init() {
 }*/
 
 func main() {
-	// f, err := os.Create("trace.out")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer f.Close()
-
-	// err = trace.Start(f)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer trace.Stop()
 	Init()
+	//启动http server
 	go httpServ.ServStart()
-	// f, err := os.OpenFile("./tarce.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	// if err != nil {
-	// 	log.Fatal(err.Error())
-	// }
-	// defer f.Close()
-	// err = trace.Start(f)
-	// if err != nil {
-	// 	log.Fatal(err.Error())
-	// }
-	// defer trace.Stop()
-	go serv.StartMsgToServer()
 	// 转发服务器的消息到设备侧处理
-	//go transServMsg()
-
-	//转发设备侧处理后的消息到主服务器
+	go serv.StartMsgToServer()
 	for {
 		//data := devices.GetData()
 		//fmt.Printf("转发到服务器的数据：%v %s \n", data, string(data))
